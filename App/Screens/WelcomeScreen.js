@@ -3,10 +3,12 @@ import { View, TextInput, Button, StyleSheet, Text, Image } from 'react-native';
 import { FIREBASE_AUTH, FIREBASE_DB } from './../../firebaseConfig';
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from "firebase/auth";
 import { getDoc, collection, doc, setDoc, query, where, getDocs} from 'firebase/firestore';
+import { View, TextInput, Button, StyleSheet, Text, Image, Alert } from 'react-native';
+
 
 const LoginScreen = ({ navigation }) => {
   const [email, setEmail] = useState('');
-  const [name, setName] = useState(''); // TODO: front-add box to enter user name at register
+  const [name, setName] = useState(''); 
   const [password, setPassword] = useState('');
   const [layerCode, setLayerCode] = useState('');
   const [registerMode, setRegisterMode] = useState(false);
@@ -21,13 +23,15 @@ const LoginScreen = ({ navigation }) => {
           const layers = userID.split('.');
           // TODO: testing - test if logging in to each type of user
           if (layers.length == 4) navigation.navigate("Main", userID); // user is volunteer
-          else if (layers.length == 3) navigation.navigate("MainM"); // user is school manager
+          else if (layers.length == 3) navigation.navigate("MainMS"); // user is school manager
           else if (layers.length == 2) navigation.navigate("MainMT"); // user is regional manager
-          else if (layers.length == 1) navigation.navigate("MainMS"); // user is admin
+          else if (layers.length == 1) navigation.navigate("MainM"); // user is admin
           else console.log("valid user type not found");
         } else {
           console.log("ERROR: user data not found");
           // TODO: front - couldnt log in, user not found
+          Alert.alert('Error', 'User data not found. Please check your email and password.', [{ text: 'OK' }]);
+
         }
       }).catch((error) => {
         const errorCode = error.code;
@@ -98,6 +102,13 @@ const LoginScreen = ({ navigation }) => {
             onChangeText={text => setPassword(text)}
             value={password}
           />
+          <TextInput
+          style={styles.input}
+          placeholder="Full Name"
+          onChangeText={text => setName(text)}
+          value={name}
+          />
+
           <TextInput
             style={styles.input}
             placeholder="School Code"
