@@ -65,6 +65,7 @@ const LoginScreen = ({ navigation }) => {
 
   const handleBackToLogin = () => {
     setRegisterMode(false);
+    setForgotPasswordMode(false);
   };
 
   const handleRegisterSubmit = async () => {
@@ -105,20 +106,26 @@ const LoginScreen = ({ navigation }) => {
   if (forgotPasswordMode) {
     return (
       <View style={styles.container}>
-        {/* Forgot Password screen */}
-        <Text style={styles.title}>Forgot Password</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Email"
-          onChangeText={text => setEmail(text)}
-          value={email}
-        />
-        <Button title="Reset Password" onPress={handlePasswordReset} />
-        <Text style={styles.goBackText} onPress={handleBackToLogin}>Go back to login</Text>
+        <Image source={require('../assets/logo.webp')} style={styles.logo} />
+        <View style={styles.form}>
+          <Text style={styles.description}>
+            In order to change your password, please enter your email in the box below:
+          </Text>
+          <TextInput
+            style={styles.input}
+            placeholder="example@gmail.com"
+            onChangeText={text => setEmail(text)}
+            value={email}
+          />
+          <Button title="Reset Password" onPress={handlePasswordReset} />
+        </View>
+        <Text style={styles.loginText}>
+          Already have an account? <Text style={styles.loginLink} onPress={handleBackToLogin}>Login Here.</Text>
+        </Text>
       </View>
     );
   }
-
+  
   if (registerMode) {
     return (
       <View style={styles.container}>
@@ -153,39 +160,39 @@ const LoginScreen = ({ navigation }) => {
           <Button title="Register" onPress={handleRegisterSubmit} />
         </View>
         <Text style={styles.registerText}>
-          Already have an account? <Text style={styles.registerLink} onPress={handleBackToLogin}>Log in here</Text>
+          Already have an account? <Text style={styles.loginLink} onPress={handleBackToLogin}>Login here.</Text>
         </Text>
       </View>
     );
   }
 
-  // TODO: front + back - forgot password(add button add back for button)
   //TODO front Animation: loading...
   return (
-    <View style={styles.container}>
-      <Image source={require('../assets/logo.webp')} style={styles.logo} />
-      <View style={styles.form}>
-        <TextInput
-          style={styles.input}
-          placeholder="email"
-          onChangeText={text => setEmail(text)}
-          value={email}
-        />
-        <TextInput
-          style={styles.input}
-          placeholder="Password"
-          secureTextEntry
-          onChangeText={text => setPassword(text)}
-          value={password}
-        />
-        <Button title="Log In" onPress={handleLogin} />
-        <Text style={styles.forgotPasswordText} onPress={handleForgotPassword}>Forgot Password?</Text>
-      </View>
-      <Text style={styles.registerText}>
-        Don't have an account? <Text style={styles.registerLink} onPress={handleRegister}>Register here</Text>
-      </Text>
+  <View style={styles.container}>
+    <Image source={require('../assets/logo.webp')} style={styles.logo} />
+    <View style={styles.form}>
+      <TextInput
+        style={styles.input}
+        placeholder="email"
+        onChangeText={text => setEmail(text)}
+        value={email}
+      />
+      <TextInput
+        style={styles.input}
+        placeholder="Password"
+        secureTextEntry
+        onChangeText={text => setPassword(text)}
+        value={password}
+      />
+      <Button title="Log In" onPress={handleLogin} />
+      <Text style={styles.forgotPasswordLink} onPress={handleForgotPassword}>Forgot Password?</Text>
     </View>
-  );
+    <Text style={styles.registerText}>
+      Don't have an account? <Text style={styles.registerLink} onPress={handleRegister}>Register here</Text>
+    </Text>
+  </View>
+);
+
 };
 
 const styles = StyleSheet.create({
@@ -220,6 +227,54 @@ const styles = StyleSheet.create({
     color: 'gray',
   },
   registerLink: {
+    fontWeight: 'bold',
+    color: 'blue',
+    textDecorationLine: 'underline',
+  },
+  forgotPasswordLink: {
+    alignItems: 'center',
+    alignSelf: 'center',
+    marginTop: 15,
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: 'blue',
+    textDecorationLine: 'underline',
+  },
+  container: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    marginBottom: 100,
+  },
+  logo: {
+    width: 300,
+    height: 300,
+    resizeMode: 'contain',
+    marginBottom: 20,
+  },
+  form: {
+    width: '80%',
+  },
+  description: {
+    fontSize: 16,
+    marginBottom: 16,
+    textAlign: 'center',
+  },
+  input: {
+    height: 40,
+    borderColor: 'gray',
+    borderWidth: 1,
+    borderRadius: 8,
+    marginBottom: 16,
+    paddingHorizontal: 8,
+  },
+  loginText: {
+    marginTop: 16,
+    fontSize: 14,
+    color: 'gray',
+  },
+  loginLink: {
     fontWeight: 'bold',
     color: 'blue',
     textDecorationLine: 'underline',
