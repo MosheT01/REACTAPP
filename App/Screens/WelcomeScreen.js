@@ -77,8 +77,8 @@ const LoginScreen = ({ navigation }) => {
       console.log("error code: " + errorCode + ": " + errorMessage);
       //TODO :front - alert the user that registration has failed with error code and error message
     });
+    handleLogin();
   };
-  handleLogin();
 
   if (registerMode) {
     return (
@@ -113,6 +113,8 @@ const LoginScreen = ({ navigation }) => {
     );
   }
 
+  // TODO: front + back - forgot password(add button add back for button)
+  //TODO front Animation: loading...
   return (
     <View style={styles.container}>
       <Image source={require('../assets/logo.webp')} style={styles.logo} />
