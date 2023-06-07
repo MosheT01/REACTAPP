@@ -113,6 +113,8 @@ const LoginScreen = ({ navigation }) => {
     );
   }
 
+  // TODO: front + back - forgot password(add button add back for button)
+  //TODO front Animation: loading...
   return (
     <View style={styles.container}>
       <Image source={require('../assets/logo.webp')} style={styles.logo} />
