@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { View, TextInput, Button, StyleSheet, Text, Image } from 'react-native';
 import { FIREBASE_AUTH, FIREBASE_DB } from './../../firebaseConfig';
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from "firebase/auth";
 import { getDoc, collection, doc, setDoc, query, where, getDocs} from 'firebase/firestore';
@@ -38,6 +37,8 @@ const LoginScreen = ({ navigation }) => {
         const errorMessage = error.message;
         console.log("Error Code: ", errorCode, "\nError Message: ", errorMessage);
         //TODO :front - alert the email or password is not correct
+        Alert.alert('Error', 'User data not found. Please check your email and password.', [{ text: 'OK' }]);
+
       });
   };
 
