@@ -1,5 +1,13 @@
 import React, { useState } from "react";
-import { View, Text, TouchableOpacity, FlatList, Modal, TextInput, Button } from "react-native";
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  FlatList,
+  Modal,
+  TextInput,
+  Button,
+} from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 
@@ -31,7 +39,7 @@ const styles = {
     marginRight: 30,
     padding: 5,
   },
-  messageButton: {
+  viewButton: {
     padding: 5,
     marginRight: 0,
   },
@@ -55,33 +63,33 @@ const styles = {
   },
 };
 
-const StudentList = ({ navigation }) => {
-  const [students, setStudents] = useState([
-    { id: 1, name: "student 0" },
-    { id: 2, name: "student 1" },
-    { id: 3, name: "student 2" },
+const SchoolList = ({ navigation }) => {
+  const [schools, setSchools] = useState([
+    { id: 1, name: "School 1" },
+    { id: 2, name: "School 2" },
+    { id: 3, name: "School 3" },
   ]);
 
   const [modalVisible, setModalVisible] = useState(false);
   const [message, setMessage] = useState("");
   const [searchIdText, setSearchIdText] = useState("");
   const [searchNameText, setSearchNameText] = useState("");
-  const [filteredStudents, setFilteredStudents] = useState(students);
-  const [studentsID, setStudentsID] = useState(0);
+  const [filteredSchools, setFilteredSchools] = useState(schools);
+  const [schoolID, setSchoolID] = useState(0);
 
   const handleDelete = (id) => {
-    setStudents((prevStudents) =>
-      prevStudents.filter((student) => student.id !== id)
+    setSchools((prevSchools) =>
+      prevSchools.filter((school) => school.id !== id)
     );
   };
 
   const handleEdit = (id) => {
-    navigation.navigate("ProfileEdit", { id: id });
+    navigation.navigate("ProfileEditMS", { id: id });
   };
 
-  const handleSendMessage = (id) => {
-    setStudentsID(id)
-    setModalVisible(true);
+  const handleViewStudents = (id) => {
+    setSchoolID(id);
+    navigation.navigate("School", { schoolID: id });
   };
 
   const handleModalClose = () => {
@@ -89,18 +97,18 @@ const StudentList = ({ navigation }) => {
   };
 
   const handleMessageSend = () => {
-    // Implement your logic to send the message here
-    console.log(`Sending message: ${studentsID}`);
+    console.log(`Sending message: ${message}`);
     setModalVisible(false);
     setMessage("");
   };
 
   const handleSearch = () => {
-    const filtered = students.filter((student) =>
-      student.id.toString().includes(searchIdText) &&
-      student.name.toLowerCase().includes(searchNameText.toLowerCase())
+    const filtered = schools.filter(
+      (school) =>
+        school.id.toString().includes(searchIdText) &&
+        school.name.toLowerCase().includes(searchNameText.toLowerCase())
     );
-    setFilteredStudents(filtered);
+    setFilteredSchools(filtered);
   };
 
   const renderItem = ({ item }) => (
@@ -120,10 +128,10 @@ const StudentList = ({ navigation }) => {
           <Ionicons name="md-create" size={30} color="black" />
         </TouchableOpacity>
         <TouchableOpacity
-          style={[styles.messageButton]}
-          onPress={() => handleSendMessage(item.id)}
+          style={[styles.viewButton]}
+          onPress={() => handleViewStudents(item.id)}
         >
-          <Ionicons name="md-mail" size={30} color="black" />
+          <Ionicons name="md-people" size={30} color="black" />
         </TouchableOpacity>
       </View>
     </View>
@@ -131,28 +139,27 @@ const StudentList = ({ navigation }) => {
 
   return (
     <View style={styles.container}>
-
       <FlatList
-        data={filteredStudents}
+        data={filteredSchools}
         renderItem={renderItem}
         keyExtractor={(item) => item.id.toString()}
       />
       <View style={styles.searchContainer}>
         <KeyboardAwareScrollView>
-        <TextInput
-          style={styles.searchInput}
-          placeholder="Search by ID"
-          placeholderTextColor="#999"
-          value={searchIdText}
-          onChangeText={(text) => setSearchIdText(text)}
-        />
-        <TextInput
-          style={styles.searchInput}
-          placeholder="Search by Name"
-          placeholderTextColor="#999"
-          value={searchNameText}
-          onChangeText={(text) => setSearchNameText(text)}
-        />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search by ID"
+            placeholderTextColor="#999"
+            value={searchIdText}
+            onChangeText={(text) => setSearchIdText(text)}
+          />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search by Name"
+            placeholderTextColor="#999"
+            value={searchNameText}
+            onChangeText={(text) => setSearchNameText(text)}
+          />
         </KeyboardAwareScrollView>
         <Button title="Search" onPress={handleSearch} />
       </View>
@@ -179,4 +186,4 @@ const StudentList = ({ navigation }) => {
   );
 };
 
-export default StudentList;
+export default SchoolList;

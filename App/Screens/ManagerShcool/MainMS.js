@@ -13,7 +13,7 @@ const MainScreen = ({ navigation }) => {
     navigation.navigate(screenName);
   };
   const handleProfile = () => {
-    navigation.navigate("Profile");
+    navigation.navigate("ProfileMS");
   };
   return (
     <View style={styles.container}>
@@ -61,11 +61,17 @@ const MainScreen = ({ navigation }) => {
         </TouchableOpacity>
         <TouchableOpacity
           style={styles.button}
-          onPress={() => handleNavigate("inbox")}
+          onPress={() => handleNavigate("inboxMS")}
         >
           <Icon name="envelope" size={90} color="black" />
 
           <Text style={styles.buttonText}>Messages</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.button} onPress={() =>handleNavigate("StatisticMS")}>
+          <Icon name="bar-chart" size={80} color="#000" />
+
+          <Text style={styles.buttonText}>Statistics</Text>
         </TouchableOpacity>
       </View>
 

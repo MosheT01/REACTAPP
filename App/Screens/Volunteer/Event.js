@@ -1,91 +1,69 @@
-import { Timestamp, query, where, collection, getDocs } from "firebase/firestore";
-import { FIREBASE_DB } from "../../../firebaseConfig";
 import React, { useState, useEffect } from "react";
-import { View, FlatList, Text, StyleSheet } from "react-native";
+import {
+  View,
+  FlatList,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+} from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome";
 
-function EventList({route, navigation}) {
-  const vid = route.params;
+function EventList() {
   const [loading, setLoading] = useState(true);
-  const [events, setEvents] = useState([]);
+  const [eventss, setEvent] = useState([]);
   const [reEvents, setReEvents] = useState([]);
 
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        let eventsArray = new Array();
-        let reEventsArray = new Array();
-
-        // building layerID to check for events from any layer(school manager or regional manager)
-        const layers = vid.split('.');
-        for (i = 1; i <= 3; i++){
-          let layerID = layers[0];
-          for (j = 1; j < i; j++){
-            layerID += "." + layers[j]; 
-          }
-
-          let q = query(collection(FIREBASE_DB, 'events'), where('layerID', '==', layerID)); // the query
-          let querySnapshot = await getDocs(q);
-          if (querySnapshot.empty){
-            console.log("didnt find any events for this volunteer from ", layerID, " layer");
-          }
-          else{
-            querySnapshot.forEach(event => {
-              console.log("found event");
-              const timestamp = new Timestamp(event.get('When').seconds, event.get('When').nanoseconds);
-              let date = timestamp.toDate();
-              let mm = date.getMonth() + 1;
-              let dd = date.getDate();
-              let yyyy = date.getFullYear();
-              date = dd + "/" + mm + "/" + yyyy;
-
-              console.log(typeof event.get('repeat'));
-              let repeat = event.get('repeat');
-
-              console.log("checking repeat");
-              if (repeat === 0){
-                eventsArray.push({
-                  eventID: event.get('eventID'),
-                  date: date, 
-                  duration: event.get('duration'),
-                  title: event.get('title'),
-                  description: event.get('description'),
-                  location: event.get('Where'),
-                });
-              }
-              else{
-                reEventsArray.push({eventID: event.get('eventID'),
-                  day: date, 
-                  duration: event.get('duration'),
-                  title: event.get('title'),
-                  description: event.get('description'),
-                  location: event.get('Where'),
-                  repeat: repeat,
-                });
-              }
-              console.log("done checking repeat");
-            });
-          }
-        }
-
-        console.log("1");
-        console.log(eventsArray);
-        setEvents(eventsArray);
-        console.log("2");
-        setReEvents(reEventsArray);
-        console.log("3");
-
+        setReEvents([
+          {
+            id: 1,
+            title: "lol",
+            description: "day after day",
+            fromDate: "May 25, 2023",
+            toDate: "May 25, 2024",
+            volunteerPlace: "City",
+            daysWeekly: ["Sunday", "Monday"],
+            hours: 5,
+            approvedDay: [],
+          },
+        ]);
+        setEvent([
+          {
+            id: 1,
+            title: "lol",
+            description: "day after day",
+            date: "May 25, 2023",
+            location: "New York City, NY",
+            hours: 5,
+          },
+          {
+            id: 2,
+            title: "why",
+            description: "why the birds fly",
+            date: "June 1, 2023",
+            location: "Los Angeles, CA",
+            hours: 5,
+          },
+          {
+            id: 3,
+            title: "why",
+            description: "why the birds fly",
+            date: "June 1, 2023",
+            location: "Los Angeles, CA",
+            hours: 5,
+          },
+        ]);
       } catch (error) {
-        console.log("Error fetching events data: ", error);
-      }
-      finally{
+        console.log("Error fetching hours data: ", error);
+      } finally {
         setLoading(false);
       }
     };
 
     fetchData();
-    // setLoading(false);
   }, []);
 
 
@@ -96,17 +74,16 @@ if (loading) {
     </View>
   );
 }
-
 const renderEvents = ({ item }) => {
   return (
-    <View key={item.eventID} style={styles.event}>
+    <View key={item.id} style={styles.event}>
       <Icon name="calendar" size={70} color="#000" style={styles.eventPhoto} />
       <View style={styles.eventDetails}>
         <Text style={styles.eventTitle}>{item.title}</Text>
         <Text style={styles.eventDescription}>{item.description}</Text>
         <Text style={styles.eventDate}>{item.date}</Text>
         <Text style={styles.eventLocation}>{item.location}</Text>
-        <Text>hours : {item.duration}</Text>
+        <Text>hours : {item.hours}</Text>
       </View>
     </View>
   );
@@ -114,15 +91,19 @@ const renderEvents = ({ item }) => {
 
 const renderReEvents = ({ item }) => {
   return (
-    <View key={item.eventID} style={styles.event}>
+    <View key={item.id} style={styles.event}>
       <Icon name="calendar" size={70} color="#000" style={styles.eventPhoto} />
       <View style={styles.eventDetails}>
         <Text style={styles.eventTitle}>{item.title}</Text>
         <Text style={styles.eventDescription}>{item.description}</Text>
         <Text style={styles.eventDate}>Start Date : {item.fromDate}</Text>
-        <Text style={styles.eventDate}>every :{item.repeat} weeks</Text>
-        <Text style={styles.eventLocation}> location : {item.location}</Text>
-        <Text>hours : {item.duration}</Text>
+        <Text style={styles.eventDate}>to Date :{item.toDate}</Text>
+        <Text style={styles.eventLocation}>
+          volunteer at : {item.volunteerPlace}
+        </Text>
+        <Text>hours : {item.hours}</Text>
+      </View>
+      <View>
       </View>
     </View>
   );
@@ -136,9 +117,9 @@ const renderReEvents = ({ item }) => {
         <View style={styles.line} />
       </View>
       <FlatList
-        data={events}
+        data={eventss}
         renderItem={renderEvents}
-        keyExtractor={(item) => item.eventID.toString()}
+        keyExtractor={(item) => item.id.toString()}
         ItemSeparatorComponent={() => <View style={styles.separator} />}
       />
 
@@ -149,7 +130,7 @@ const renderReEvents = ({ item }) => {
       <FlatList
         data={reEvents}
         renderItem={renderReEvents}
-        keyExtractor={(item) => item.eventID.toString()}
+        keyExtractor={(item) => item.id.toString()}
         ItemSeparatorComponent={() => <View style={styles.separator} />}
       />
       <View style={styles.buttonContainer}>

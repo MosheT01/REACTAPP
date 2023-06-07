@@ -88,11 +88,6 @@ const MainScreen = ({ navigation }) => {
           <Text style={styles.buttonText}>Messages</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.button} onPress={handleTransport}>
-          <Icon name="car" size={90} color="black" />
-
-          <Text style={styles.buttonText}>Transport</Text>
-        </TouchableOpacity>
 
         <TouchableOpacity style={styles.button} onPress={handleTransport}>
           <Icon name="bar-chart" size={80} color="#000" />

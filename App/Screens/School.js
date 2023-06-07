@@ -55,7 +55,9 @@ const styles = {
   },
 };
 
-const StudentList = ({ navigation }) => {
+const StudentList = ({ navigation ,route }) => {
+
+  const id = route.params.schoolID
   const [students, setStudents] = useState([
     { id: 1, name: "student 0" },
     { id: 2, name: "student 1" },

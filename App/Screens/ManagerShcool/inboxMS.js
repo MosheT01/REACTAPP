@@ -154,7 +154,6 @@ const Inbox = () => {
 
   const options = [
     { label: "Admin", value: "admin" },
-    { label: "school manager", value: "school manager" },
     { label: "regional manager", value: "regional manager" },
   ];
 

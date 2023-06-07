@@ -19,7 +19,7 @@ const Inbox = () => {
   const [newMessageModalVisible, setNewMessageModalVisible] = useState(false);
   const [newMessage, setNewMessage] = useState({
     subject: "",
-    receiver: "regional manager",
+    receiver: "admin",
     body: "",
   });
   const [selectedMessage, setSelectedMessage] = useState(null); // Added state for the selected message
@@ -149,13 +149,11 @@ const Inbox = () => {
 
     setMessages([...messages, newMessageObject]);
     setNewMessageModalVisible(false);
-    setNewMessage({ subject: "", receiver: "school manager", body: "" });
+    setNewMessage({ subject: "", receiver: "admin", body: "" });
   };
 
   const options = [
     { label: "Admin", value: "admin" },
-    { label: "school manager", value: "school manager" },
-    { label: "regional manager", value: "regional manager" },
   ];
 
   return (
