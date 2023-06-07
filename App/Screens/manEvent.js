@@ -1,7 +1,3 @@
-
-
-
-
 import React, { useState } from 'react';
 import { View, FlatList, TextInput, Text, Modal, Image, StyleSheet, TouchableOpacity } from 'react-native';
 import { Button } from 'react-native-elements';
