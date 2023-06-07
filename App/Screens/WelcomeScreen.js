@@ -1,3 +1,4 @@
+//ready.
 import React, { useState } from 'react';
 import { FIREBASE_AUTH, FIREBASE_DB } from './../../firebaseConfig';
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword, sendPasswordResetEmail } from "firebase/auth";
