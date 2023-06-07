@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { FIREBASE_AUTH, FIREBASE_DB } from './../../firebaseConfig';
-import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from "firebase/auth";
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword,sendPasswordResetEmail  } from "firebase/auth";
 import { getDoc, collection, doc, setDoc, query, where, getDocs} from 'firebase/firestore';
 import { View, TextInput, Button, StyleSheet, Text, Image, Alert } from 'react-native';
 
@@ -11,6 +11,8 @@ const LoginScreen = ({ navigation }) => {
   const [password, setPassword] = useState('');
   const [layerCode, setLayerCode] = useState('');
   const [registerMode, setRegisterMode] = useState(false);
+  const [forgotPasswordMode, setForgotPasswordMode] = useState(false); // Add this line
+
 
     const handleLogin = () => {
       console.log("logging in...");
@@ -28,7 +30,6 @@ const LoginScreen = ({ navigation }) => {
           else console.log("valid user type not found");
         } else {
           console.log("ERROR: user data not found");
-          // TODO: front - couldnt log in, user not found
           Alert.alert('Error', 'User data not found. Please check your email and password.', [{ text: 'OK' }]);
 
         }
@@ -36,11 +37,27 @@ const LoginScreen = ({ navigation }) => {
         const errorCode = error.code;
         const errorMessage = error.message;
         console.log("Error Code: ", errorCode, "\nError Message: ", errorMessage);
-        //TODO :front - alert the email or password is not correct
         Alert.alert('Error', 'User data not found. Please check your email and password.', [{ text: 'OK' }]);
 
       });
   };
+  const handleForgotPassword = () => {
+    setForgotPasswordMode(true);
+  };
+  const handlePasswordReset = () => {
+    sendPasswordResetEmail(FIREBASE_AUTH, email).then(() =>  {
+        Alert.alert('Password Reset', 'A password reset email has been sent to your email address.', [
+          { text: 'OK', onPress: handleBackToLogin },
+        ]);
+      })
+      .catch((error) => {
+        const errorCode = error.code;
+        const errorMessage = error.message;
+        console.log("Error Code: ", errorCode, "\nError Message: ", errorMessage);
+        Alert.alert('Error', 'Failed to send password reset email. Please try again.', [{ text: 'OK' }]);
+      });
+  };
+    
 
   const handleRegister = () => {
     setRegisterMode(true);
@@ -53,7 +70,7 @@ const LoginScreen = ({ navigation }) => {
   const handleRegisterSubmit = async () => {
     if (layerCode.split('.').length != 3){
       console.log("invalid school code");
-      //TODO :front - alert the user that he entered a wrong shool code.
+      Alert.alert('Error', 'Invalid School Code', [{ text: 'OK' }]);
       return;
     }
     console.log("registering user...");
@@ -62,8 +79,8 @@ const LoginScreen = ({ navigation }) => {
     const q = query(collection(FIREBASE_DB, 'users'), where('layer', '==', layerCode));
     const managerSnapshot = await getDocs(q);
     if (managerSnapshot.empty){
-      console.log("school not found")
-      //TODO :front - alert the user that he entered a wrong shool code.
+      console.log("School not found")
+      Alert.alert('Error', 'School not Found! Enter A valid School Code!', [{ text: 'OK' }]);
       return;
     }
 
@@ -80,10 +97,27 @@ const LoginScreen = ({ navigation }) => {
       const errorCode = error.code;
       const errorMessage = error.message;
       console.log("error code: " + errorCode + ": " + errorMessage);
-      //TODO :front - alert the user that registration has failed with error code and error message
+      Alert.alert('Registration Failed!', 'Error code: ' + errorCode + '\nError message: ' + errorMessage + '\n', [{ text: 'OK' }]);
     });
     handleLogin();
   };
+
+  if (forgotPasswordMode) {
+    return (
+      <View style={styles.container}>
+        {/* Forgot Password screen */}
+        <Text style={styles.title}>Forgot Password</Text>
+        <TextInput
+          style={styles.input}
+          placeholder="Email"
+          onChangeText={text => setEmail(text)}
+          value={email}
+        />
+        <Button title="Reset Password" onPress={handlePasswordReset} />
+        <Text style={styles.goBackText} onPress={handleBackToLogin}>Go back to login</Text>
+      </View>
+    );
+  }
 
   if (registerMode) {
     return (
@@ -145,6 +179,7 @@ const LoginScreen = ({ navigation }) => {
           value={password}
         />
         <Button title="Log In" onPress={handleLogin} />
+        <Text style={styles.forgotPasswordText} onPress={handleForgotPassword}>Forgot Password?</Text>
       </View>
       <Text style={styles.registerText}>
         Don't have an account? <Text style={styles.registerLink} onPress={handleRegister}>Register here</Text>
