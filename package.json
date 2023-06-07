@@ -9,10 +9,21 @@
     "web": "expo start --web"
   },
   "dependencies": {
+    "@react-native-picker/picker": "2.4.8",
+    "@react-navigation/native": "^6.1.6",
+    "@react-navigation/native-stack": "^6.9.12",
     "expo": "~48.0.15",
+    "expo-print": "^12.2.1",
+    "expo-sharing": "^11.2.2",
     "expo-status-bar": "~1.4.4",
+    "firebase": "^9.22.1",
     "react": "18.2.0",
-    "react-native": "0.71.8"
+    "react-native": "^0.71.8",
+    "react-native-elements": "^3.4.3",
+    "react-native-gesture-handler": "~2.9.0",
+    "react-native-keyboard-aware-scroll-view": "^0.9.5",
+    "react-native-picker": "^4.3.7",
+    "react-navigation": "^4.4.4"
   },
   "devDependencies": {
     "@babel/core": "^7.20.0"
