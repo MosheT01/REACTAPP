@@ -4,6 +4,7 @@ import Icon from "react-native-vector-icons/FontAwesome";
 
 const MainScreen = ({ route, navigation }) => {
   const vid = route.params;
+  console.log("vid at Main: ", vid);
 
     const handleNavigate = (screenName) => {
         navigation.navigate(screenName, vid);
