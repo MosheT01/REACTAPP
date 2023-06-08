@@ -38,16 +38,15 @@ function EventList({route, navigation}) {
               let mm = date.getMonth() + 1;
               let dd = date.getDate();
               let yyyy = date.getFullYear();
+              let hour = date.getHours() + ":" + date.getMinutes();
               date = dd + "/" + mm + "/" + yyyy;
 
-              console.log(typeof event.get('repeat'));
               let repeat = event.get('repeat');
-
-              console.log("checking repeat");
               if (repeat === 0){
                 eventsArray.push({
                   eventID: event.get('eventID'),
                   date: date, 
+                  time: hour,
                   duration: event.get('duration'),
                   title: event.get('title'),
                   description: event.get('description'),
@@ -56,7 +55,8 @@ function EventList({route, navigation}) {
               }
               else{
                 reEventsArray.push({eventID: event.get('eventID'),
-                  day: date, 
+                  date: date, 
+                  time: hour,
                   duration: event.get('duration'),
                   title: event.get('title'),
                   description: event.get('description'),
@@ -64,17 +64,12 @@ function EventList({route, navigation}) {
                   repeat: repeat,
                 });
               }
-              console.log("done checking repeat");
             });
           }
         }
 
-        console.log("1");
-        console.log(eventsArray);
         setEvents(eventsArray);
-        console.log("2");
         setReEvents(reEventsArray);
-        console.log("3");
 
       } catch (error) {
         console.log("Error fetching events data: ", error);
@@ -104,7 +99,7 @@ const renderEvents = ({ item }) => {
       <View style={styles.eventDetails}>
         <Text style={styles.eventTitle}>{item.title}</Text>
         <Text style={styles.eventDescription}>{item.description}</Text>
-        <Text style={styles.eventDate}>{item.date}</Text>
+        <Text style={styles.eventDate}>{item.date}, {item.time}</Text>
         <Text style={styles.eventLocation}>{item.location}</Text>
         <Text>hours : {item.duration}</Text>
       </View>
@@ -120,6 +115,7 @@ const renderReEvents = ({ item }) => {
         <Text style={styles.eventTitle}>{item.title}</Text>
         <Text style={styles.eventDescription}>{item.description}</Text>
         <Text style={styles.eventDate}>Start Date : {item.fromDate}</Text>
+        <Text style={styles.eventDate}>Time : {item.time}</Text>
         <Text style={styles.eventDate}>every :{item.repeat} weeks</Text>
         <Text style={styles.eventLocation}> location : {item.location}</Text>
         <Text>hours : {item.duration}</Text>
