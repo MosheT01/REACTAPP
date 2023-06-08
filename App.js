@@ -22,12 +22,12 @@ import MainM from "./App/Screens/Manager/MainM";
 import MainMT from "./App/Screens/ManagerTo/MainMT";
 
 /* manager school */
-import MainMS from "./App/Screens/ManagerShcool/MainMS";
-import EventMS from "./App/Screens/ManagerShcool/EventMS";
-import HoursMan from "./App/Screens/ManagerShcool/HoursMS";
-import pdfMS from "./App/Screens/ManagerShcool/pdfMS";
-import MySchool from "./App/Screens/ManagerShcool/MySchool";
-import ProfileEdit from "./App/Screens/ManagerShcool/ProfileEdit";
+import MainMS from "./App/Screens/ManagerSchool/MainMS";
+import EventMS from "./App/Screens/ManagerSchool/EventMS";
+import HoursMan from "./App/Screens/ManagerSchool/HoursMS";
+import pdfMS from "./App/Screens/ManagerSchool/pdfMS";
+import MySchool from "./App/Screens/ManagerSchool/MySchool";
+import ProfileEdit from "./App/Screens/ManagerSchool/ProfileEdit";
 
 const Stack = createNativeStackNavigator();
 

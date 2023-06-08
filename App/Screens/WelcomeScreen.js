@@ -26,8 +26,8 @@ const LoginScreen = ({ navigation }) => {
           const layers = userID.split('.');
           // TODO: testing - test if logging in to each type of user
           if (layers.length === 4) navigation.navigate("Main", userID); // user is volunteer
-          else if (layers.length === 3) navigation.navigate("MainMS"); // user is school manager
-          else if (layers.length === 2) navigation.navigate("MainMT"); // user is regional manager
+          else if (layers.length === 3) navigation.navigate("MainMS", userID); // user is school manager
+          else if (layers.length === 2) navigation.navigate("MainMT", userID); // user is regional manager
           else if (layers.length === 1) navigation.navigate("MainM"); // user is admin
           else console.log("valid user type not found");
         } else {
