@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { FIREBASE_AUTH, FIREBASE_DB } from './../../firebaseConfig';
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword, sendPasswordResetEmail } from "firebase/auth";
-import { getDoc, collection, doc, setDoc, query, where, getDocs } from 'firebase/firestore';
+import { getDoc, collection, doc, setDoc, query, where, getDocs, documentId } from 'firebase/firestore';
 import { View, TextInput, Button, StyleSheet, Text, Image, Alert } from 'react-native';
 
 const LoginScreen = ({ navigation }) => {
