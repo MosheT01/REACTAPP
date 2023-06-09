@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { View, FlatList, TextInput, Text, Modal, StyleSheet, TouchableOpacity } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { FIREBASE_DB } from '../../../firebaseConfig';
-import { query, where, collection, getDocs, Timestamp, setDoc, doc } from 'firebase/firestore';
+import { query, where, collection, getDocs, Timestamp, setDoc, doc, deleteDoc } from 'firebase/firestore';
 
 import { Button } from 'react-native-elements';
 import { Ionicons } from "@expo/vector-icons";
@@ -31,10 +31,7 @@ function EventList({route, navigation}) {
     };
   
     const onChange = (event, value) => {
-      // console.log(event);
-      // setNewEvent({...newEvent, When: value})
       setDate(value);
-      console.log("updated event: ", date);
       if (Platform.OS === 'android') {
         setIsDatePickerShow(false);
         setIsTimePickerShow(false);
@@ -66,34 +63,38 @@ function EventList({route, navigation}) {
             querySnapshot.forEach(event => {
               console.log("found event: ", event.id);
               let updateEventTime = false;
-              const timestamp = new Timestamp(event.get('When').seconds, event.get('When').nanoseconds);
+              const timestamp = new Timestamp(event.get('date').seconds, event.get('date').nanoseconds);
               const repeat = event.get('repeat');
+              let eventDuration = event.get('duration');
 
-              while(timestamp < now){
-                timestamp.seconds += repeat * 86400 // 86400 seconds in 24 hours
+              let eventSec = timestamp.seconds;
+              let nowSec = now.getTime() / 1000;
+
+              while (nowSec > eventSec + (eventDuration * 3600) && repeat !== 0){
+                eventSec += repeat * 86400;
                 updateEventTime = true;
               }
 
-              let eventDate = timestamp.toDate();
+              let eventDate = new Date(eventSec * 1000);
 
               let mm = eventDate.getMonth() + 1;
               let dd = eventDate.getDate();
               let yyyy = eventDate.getFullYear();
-              let hour = eventDate.getHours() + ":";
+              let hour = eventDate.getHours() + 3 + ":";
               if (eventDate.getMinutes() < 10){
                 hour = hour + "0";
               }
               hour = hour + eventDate.getMinutes();
-              eventDate = dd + "/" + mm + "/" + yyyy + ", " + hour;
+              const eventDateString = dd + "/" + mm + "/" + yyyy + ", " + hour;
 
               const eventObj = {
                 eventID: event.id,
-                date: eventDate, 
+                date: eventDateString, 
                 time: hour,
-                duration: event.get('duration'),
+                duration: eventDuration,
                 title: event.get('title'),
                 description: event.get('description'),
-                location: event.get('Where'),
+                location: event.get('location'),
                 layerID: event.get('layerID'),
                 repeat: repeat,
               }
@@ -105,8 +106,8 @@ function EventList({route, navigation}) {
                 reEventsArray.push(eventObj);
               }
 
-              if (updateEventTime){
-                setDoc(doc(collection(FIREBASE_DB, 'events'), event.id), {...eventObj, When: eventDate});
+              if (updateEventTime && repeat !== 0){
+                setDoc(doc(collection(FIREBASE_DB, 'events'), event.id), {...eventObj, date: eventDate});
               }
 
             });
@@ -175,7 +176,7 @@ function EventList({route, navigation}) {
             <View>
               <TouchableOpacity
                 style={styles.button}
-                onPress={() => handledelete(item)}
+                onPress={() => handledeleteEvent(item)}
               >
                 <Ionicons name="trash-outline" size={24} color="#333" />
               </TouchableOpacity>
@@ -211,7 +212,7 @@ function EventList({route, navigation}) {
         <View>
           <TouchableOpacity
             style={styles.button}
-            onPress={() => handledeleteReEvent(item)}
+            onPress={() => handledeleteEvent(item)}
           >
             <Ionicons name="trash-outline" size={24} color="#333" />
           </TouchableOpacity>
@@ -227,14 +228,18 @@ function EventList({route, navigation}) {
     );
   };
 
-  const handledeleteReEvent = (event) => {
-    const updatedEvents = reEvents.filter((e) => e.id !== event.id);
-    setReEvents(updatedEvents);
-  };
   
-  const handledelete = (event) => {
-      const updatedEvents = events.filter((e) => e.id !== event.id);
-      setEvents(updatedEvents);
+
+  // const handledeleteReEvent = (event) => {
+  //   console.log(event);
+  //   deleteDoc(doc(FIREBASE_DB, 'events', event.eventID));
+  //   fetchData();
+  // };
+  
+  const handledeleteEvent = (event) => {
+    console.log(event);
+    deleteDoc(doc(FIREBASE_DB, 'events', event.eventID));
+    fetchData();
   };
 
   
@@ -244,7 +249,7 @@ function EventList({route, navigation}) {
   };
 
   const handleAddEventSubmit = () => {
-    let eventToAdd = {...newEvent, When: date};
+    let eventToAdd = {...newEvent, date: date};
     
     // Create a new message with a unique ID
     setDoc(doc(collection(FIREBASE_DB, 'events')), eventToAdd);
@@ -360,7 +365,7 @@ function EventList({route, navigation}) {
                 )}
                 <TextInput
                   onChangeText={(text) =>
-                    setNewEvent({ ...newEvent, Where: text })
+                    setNewEvent({ ...newEvent, location: text })
                   }
                   placeholderTextColor="#999"
                   style={styles.modalInput}
