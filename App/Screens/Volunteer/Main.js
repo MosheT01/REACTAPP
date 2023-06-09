@@ -1,10 +1,36 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text,  TouchableOpacity, StyleSheet, Image } from 'react-native';
 import Icon from "react-native-vector-icons/FontAwesome";
 
+
+  
+
+
+
+
 const MainScreen = ({ route, navigation }) => {
+  //////////////////checking userType
   const vid = route.params;
-  console.log("vid at Main: ", vid);
+  const userID = String(vid); // user id
+  const layers = userID.split('.');
+
+  const [userType, setUserType] = useState([]);
+
+  useEffect(() => {
+    if (layers.length === 4) {
+      setUserType("volunteer"); // user is volunteer
+    } else if (layers.length === 3) {
+      setUserType("schoolManager"); // user is school manager
+    } else if (layers.length === 2) {
+      setUserType("regionalManager"); // user is regional manager
+    } else if (layers.length === 1) {
+      setUserType("admin"); // user is admin
+    } else {
+      console.log("valid user type not found");
+    }
+  }, [layers]);
+  /////////////////////////////////////checking user type
+
 
     const handleNavigate = (screenName) => {
         navigation.navigate(screenName, vid);
@@ -70,12 +96,28 @@ const MainScreen = ({ route, navigation }) => {
 
             <Text style={styles.buttonText}>Messages</Text>
           </TouchableOpacity>
+
+          
+          {userType==="schoolManager" && (
+          <TouchableOpacity
+            style={styles.button}
+            onPress={() => handleNavigate("MySchool")}
+          >
+            <Icon name="university" size={90} color="#000" />
+            <Text style={styles.buttonText}>My School</Text>
+          </TouchableOpacity>
+        )}
+        
         </View>
         <View style={styles.line} />
 
         <View style={styles.footerContainer}>
           <View style={styles.line} />
         </View>
+
+
+      
+      
       </View>
     );
 };
