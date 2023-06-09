@@ -127,7 +127,7 @@ const VolunteerHoursPage = ({route, navigation}) => {
             />
           </View>
 
-          <Text style={styles.totalHoursText}>Total Hours: {totalHours}</Text>
+          {/* <Text style={styles.totalHoursText}>Total Hours: {totalHours}</Text> */}
           <View style={styles.hourSheetContainer}>
             {hours.filter(hour => hour['year'] == selectedYear && hour['month'] == selectedMonth).map(hour => (
               <View key={hour['day']} style={styles.hourSheetItem}>

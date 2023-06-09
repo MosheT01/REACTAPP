@@ -9,7 +9,8 @@ import {
 } from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome";
 
-const MainScreen = ({ navigation }) => {
+const MainScreen = ({route, navigation }) => {
+  const uid = route.params;
   const handleNavigate = (screenName) => {
     navigation.navigate(screenName);
   };
@@ -32,7 +33,7 @@ const MainScreen = ({ navigation }) => {
       <View style={styles.buttonContainer}>
         <TouchableOpacity
           style={styles.button}
-          onPress={() => handleNavigate("HoursMan")}
+          onPress={() => handleNavigate("HouesMS")}
         >
           <Icon name="clock-o" size={100} />
 

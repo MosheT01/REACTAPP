@@ -12,6 +12,7 @@
 
     "@react-native-community/datetimepicker": "^6.7.3",
 
+
     "@react-native-picker/picker": "2.4.8",
     "@react-navigation/native": "^6.1.6",
     "@react-navigation/native-stack": "^6.9.12",
@@ -20,8 +21,12 @@
     "expo-sharing": "^11.2.2",
     "expo-status-bar": "~1.4.4",
     "firebase": "^9.22.1",
+    "metro": "^0.76.6",
+    "metro-config": "^0.76.6",
+    "npx": "^10.2.2",
     "react": "18.2.0",
     "react-native": "^0.71.8",
+    "react-native-dropdown-picker": "^5.4.6",
     "react-native-elements": "^3.4.3",
     "react-native-gesture-handler": "~2.9.0",
     "react-native-keyboard-aware-scroll-view": "^0.9.5",
