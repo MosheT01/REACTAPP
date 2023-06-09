@@ -24,7 +24,7 @@ import MainMT from "./App/Screens/ManagerTo/MainMT";
 /* manager school */
 import MainMS from "./App/Screens/ManagerSchool/MainMS";
 import EventMS from "./App/Screens/ManagerSchool/EventMS";
-import HoursMan from "./App/Screens/ManagerSchool/HoursMS";
+import HoursMS from "./App/Screens/ManagerSchool/HoursMS";
 import pdfMS from "./App/Screens/ManagerSchool/pdfMS";
 import MySchool from "./App/Screens/ManagerSchool/MySchool";
 import ProfileEdit from "./App/Screens/ManagerSchool/ProfileEdit";
@@ -58,7 +58,7 @@ export default function App() {
         {/* manager school */}
         <Stack.Screen name="MainMS" component={MainMS}></Stack.Screen>
         <Stack.Screen name="pdfMS" component={pdfMS}></Stack.Screen>
-        <Stack.Screen name="HoursMan" component={HoursMan}></Stack.Screen>
+        <Stack.Screen name="HoursMS" component={HoursMS}></Stack.Screen>
         <Stack.Screen name="EventMS" component={EventMS}></Stack.Screen>
         <Stack.Screen name="MySchool" component={MySchool}></Stack.Screen>
         <Stack.Screen name="ProfileEdit" component={ProfileEdit}></Stack.Screen>

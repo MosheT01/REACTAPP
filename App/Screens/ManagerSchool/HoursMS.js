@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -9,8 +9,11 @@ import {
 import { Picker } from "@react-native-picker/picker";
 import { Ionicons } from "@expo/vector-icons";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
+import { FIREBASE_DB } from '../../../firebaseConfig';
+import { query, where, collection, getDocs, Timestamp, setDoc,deleteDoc, getDoc } from 'firebase/firestore';
 
-const SelectBox = ({ options, selectedValue, onValueChange }) => {
+
+const SelectBox = ({ options, selectedValue, onValueChange,onTouchEnd }) => {
   const pickerStyle = Platform.OS === "ios" ? styles.pickerIOS : styles.picker;
 
   return (
@@ -30,24 +33,64 @@ const SelectBox = ({ options, selectedValue, onValueChange }) => {
   );
 };
 
-const VolunteerHoursPage = () => {
+
+const VolunteerHoursPage = ({route,navigation}) => {
+  const uid = route.params;
   const currentDate = new Date();
+  let USERS = [];
+  let usersNames = [];
   const [selectedYear, setSelectedYear] = useState(
     currentDate.getFullYear().toString()
   );
+  const [curUser,setCurrentUser] = useState({});
+  const [setUsers, setSelectedUsers] = useState([]);
   const [selectedMonth, setSelectedMonth] = useState(
     (currentDate.getMonth() + 1).toString()
   );
   const [selectedID, setSelectedID] = useState("");
   const [searchValue, setSearchValue] = useState("");
-  const [hours, setHours] = useState({});
-
+  const [hours, setHours] = useState([]);
   const currentYear = new Date().getFullYear();
   const lastTenYears = Array.from({ length: 2 }, (_, index) => {
     const year = currentYear - index;
     return { label: year.toString(), value: year.toString() };
   });
   const years = lastTenYears;
+
+  const fetchData = async () => {
+    let counter = 0;
+    try {
+      let users = new Array();
+      // building layerID to check for events from any layer(school manager or regional manager)
+  
+      let q = query(collection(FIREBASE_DB, 'users'), where('manager', '==', uid)); // the query
+      let querySnapshot = await getDocs(q);
+      if (querySnapshot.empty){
+        console.log("didnt find any hours for this volunteer from ", layerID, " layer");
+      }
+      else{
+
+        users.push({ label: "Names", value: ""});
+        querySnapshot.forEach(user => {
+          console.log("found users from this manager");
+          console.log();
+          users.push({ label: user.get('name'), value: user.get('layer')});
+          counter++;
+          })
+          console.log(users);
+          setSelectedUsers(users);
+      }
+    } catch (error) {
+      console.log("Error fetching events data: ", error);
+    }
+    finally{
+      setLoading(false);
+    }
+  };
+  
+  useEffect(() => {
+    fetchData();
+  }, []);
 
   const months = [
     { label: "Select Month", value: "" },
@@ -67,92 +110,65 @@ const VolunteerHoursPage = () => {
 
 
 
-const handleDelete = (year, month, day) => {
-  setHours((prevHours) => {
-    const updatedHours = { ...prevHours };
-    if (updatedHours[year] && updatedHours[year][month]) {
-      delete updatedHours[year][month][day];
-
-      // If there are no more entries for the selected month and year, remove the month entry
-      if (Object.keys(updatedHours[year][month]).length === 0) {
-        delete updatedHours[year][month];
-
-        // If there are no more entries for the selected year, remove the year entry
-        if (Object.keys(updatedHours[year]).length === 0) {
-          delete updatedHours[year];
-        }
-      }
-    }
-    return updatedHours;
-  });
+const handleDelete = async (curUser,date,documentReference) => {
+  await deleteDoc(documentReference);
 };
 
+  const handleSearch = async (curUser) => {
+    setCurrentUser(curUser);
+    console.log(curUser);
+    const q = query(collection(FIREBASE_DB, 'Hours'), where('VID', '==', curUser));
+        const querySnapshot = await getDocs(q);
+        if (querySnapshot.empty){
+          console.log("didnt find any hours for this volunteer");
+          let hoursArray = new Array();
+          setHours(hoursArray);
+        }
+        else{
+          console.log("found hours");
+          let hoursArray = new Array();
+          let totHours = 0;
+          querySnapshot.forEach(hour => {
+            console.log(typeof hour.ref);
+            const timestamp = new Timestamp(hour.get('from').seconds, hour.get('from').nanoseconds);
+            let date = timestamp.toDate();
+            let mm = date.getMonth() + 1;
+            let dd = date.getDate();
+            let yyyy = date.getFullYear();
+            let duration = hour.get('duration');
 
-  const handleSearch = () => {
-    setHours({
-      2021: {
-        1: {
-          1: 2,
-          2: 4,
-          3: 2,
-          4: 3,
-        },
-        2: {
-          29: 4,
-          5: 5,
-        },
-        3: {
-          29: 4,
-          29: 5,
-        },
-      },
-      2023: {
-        5: {
-          29: 4,
-          28: 5,
-        },
-        1: {
-          29: 4,
-          29: 5,
-        },
-        2: {
-          29: 4,
-          23: 5,
-          24: 5,
-          25: 5,
-          26: 5,
-          27: 5,
-          28: 5,
-          20: 5,
-          11: 5,
-          12: 5,
-          13: 5,
-          14: 5,
-          15: 5,
-          17: 5,
-          18: 5,
-          19: 5,
-          0: 5,
-          1: 5,
-        },
-      },
-    });
-    setSelectedID("ss");
-    console.log("Searching for ID:", searchValue);
+            totHours += duration;
+
+            hoursArray.push({day: dd, month: mm, year: yyyy, duration: duration, date: date, VID: hour.get('VID'),documentReference: hour.ref});
+          });
+          setHours(hoursArray);
+          // setTotalHours(totHours);
+        }
   };
 
   return (
     <View style={styles.container}>
-      <View style={styles.inputContainer}>
-        <TextInput
+      {/* <View style={styles.inputContainer}> */}
+        {/* <TextInput
           style={styles.inputField}
           value={searchValue}
           onChangeText={setSearchValue}
           placeholder="Enter ID"
-        />
-        <TouchableOpacity style={styles.searchButton} onPress={handleSearch}>
+        /> */}
+        {/* <TouchableOpacity style={styles.searchButton} onPress={handleSearch}>
           <Ionicons name="search" size={20} color="white" />
-        </TouchableOpacity>
+        </TouchableOpacity> */}
+      {/* </View> */}
+      <View style = {styles.inputContainer}>
+      <SelectBox 
+        options={setUsers}
+        selectedValue={curUser}
+        // onTouchEnd={handleSearch}
+        onValueChange={(itemValue)=>{
+          handleSearch(itemValue);
+        }}
+      >
+      </SelectBox>
       </View>
       <View style={styles.inputContainer}>
         <SelectBox
@@ -166,31 +182,28 @@ const handleDelete = (year, month, day) => {
           onValueChange={setSelectedMonth}
         />
       </View>
+      {/* <Text style={styles.totalHoursText}>Total Hours: {totalHours}</Text> */}
+          <View style={styles.hourSheetContainer}>
+            {hours.filter(hour => hour['year'] == selectedYear && hour['month'] == selectedMonth).map(hour => (
+              <View key={hour['day']} style={styles.hourSheetItem}>
+              <Text style={styles.dayText}>Date: {hour['year']}/{hour['month']}/{hour['day']}
+              </Text>
+              <Text style={styles.hourText}>Hours: {hour['duration']}</Text>
 
-      {selectedID != "" &&
-        hours[selectedYear] &&
-        hours[selectedYear][selectedMonth] && (
-          <KeyboardAwareScrollView style={styles.hourSheetContainer}>
-            {Object.entries(hours[selectedYear][selectedMonth]).map(
-              ([day, hour]) => (
-                <View key={day} style={styles.hourSheetItem}>
-                  <Text style={styles.dayText}>
-                    Date: {selectedYear}/{selectedMonth}/{day}
-                  </Text>
-                  <Text style={styles.hourText}>Hours: {hour}</Text>
-                  <TouchableOpacity
-                    style={styles.deleteButton}
-                    onPress={() =>
-                      handleDelete(selectedYear, selectedMonth, day)
-                    }
-                  >
-                    <Ionicons name="trash-outline" size={24} color="white" />
-                  </TouchableOpacity>
-                </View>
-              )
-            )}
-          </KeyboardAwareScrollView>
-        )}
+            <TouchableOpacity
+              style={styles.deleteButton}
+              onPress={() =>{
+                handleDelete(hour['VID'], hour['date'],hour['documentReference']);
+              }
+              }
+              >
+              <Ionicons name="trash-outline" size={24} color="white" />
+            </TouchableOpacity>
+              </View>
+            ))}
+          </View>
+          
+          
     </View>
   );
 };
@@ -204,6 +217,8 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     marginBottom: 10,
+    backgroundColor: "#E8E8E8",
+    color: '#000000', // Replace with your desired text color
   },
   inputField: {
     flex: 1,
