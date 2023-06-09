@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { View, FlatList, TextInput, Text, Modal, StyleSheet, TouchableOpacity } from 'react-native';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { FIREBASE_DB } from '../../../firebaseConfig';
-import { query, where, collection, getDocs, Timestamp, setDoc } from 'firebase/firestore';
+import { query, where, collection, getDocs, Timestamp, setDoc, doc } from 'firebase/firestore';
+
 import { Button } from 'react-native-elements';
 import { Ionicons } from "@expo/vector-icons";
 import Icon from "react-native-vector-icons/FontAwesome";
@@ -11,29 +13,38 @@ function EventList({route, navigation}) {
   const uid = route.params;
   const [loading, setLoading] = useState(true);
   const [addingEvent, setAddingEvent] = useState(false); // state for adding new event
-  const [addingReEvent, setAddingReEvent] = useState(false); // state for adding new reEvent
-  const [ViewReEventDays, setViewReEventsDays] = useState(false); // state for viewing reEvent dates
+  const [isDatePickerShow, setIsDatePickerShow] = useState(false);
+  const [isTimePickerShow, setIsTimePickerShow] = useState(false);
+  const [date, setDate] = useState();
+  const [events, setEvents] = useState([]);
+  const [reEvents, setReEvents] = useState([]);
+  const [newEvent, setNewEvent] = useState({
+    layerID: uid,
+  });
 
-    const [newEvent, setNewEvent] = useState({
-      title: "",
-      description: "",
-      date: "",
-      location: "",
-    });
-    const [events, setEvents] = useState([]);
-    const [reEvents, setReEvents] = useState([]);
-    const [days, setDays] = useState([
-      { id: 1, day: "Monday", data: "12/1", approved: false },
-      { id: 2, day: "Tuesday", data: "12/1", approved: false },
-      { id: 3, day: "Wednesday", data: "12/1", approved: false },
-      { id: 4, day: "Wednesday", data: "12/1", approved: true },
-      { id: 5, day: "Wednesday", data: "12/1", approved: false },
-      { id: 6, day: "Wednesday", data: "12/1", approved: false },
-      { id: 7, day: "Wednesday", data: "12/1", approved: false },
-      { id: 8, day: "Wednesday", data: "12/1", approved: false },
-    ]);
+    const showDatePicker = () => {
+      setIsDatePickerShow(true);
+    };
+  
+    const showTimePicker = () => {
+      setIsTimePickerShow(true);
+    };
+  
+    const onChange = (event, value) => {
+      // console.log(event);
+      // setNewEvent({...newEvent, When: value})
+      setDate(value);
+      console.log("updated event: ", date);
+      if (Platform.OS === 'android') {
+        setIsDatePickerShow(false);
+        setIsTimePickerShow(false);
+      }
+    };
 
     const fetchData = async () => {
+      const now = new Date(Date.now());
+      now.setSeconds(0)
+      setDate(now);
       try {
         let eventsArray = new Array();
         let reEventsArray = new Array();
@@ -53,41 +64,51 @@ function EventList({route, navigation}) {
           }
           else{
             querySnapshot.forEach(event => {
-              console.log("found event");
+              console.log("found event: ", event.id);
+              let updateEventTime = false;
               const timestamp = new Timestamp(event.get('When').seconds, event.get('When').nanoseconds);
-              let date = timestamp.toDate();
-              let mm = date.getMonth() + 1;
-              let dd = date.getDate();
-              let yyyy = date.getFullYear();
-              let hour = date.getHours() + ":" + date.getMinutes();
-              date = dd + "/" + mm + "/" + yyyy + ", " + hour;
+              const repeat = event.get('repeat');
 
-              let repeat = event.get('repeat');
+              while(timestamp < now){
+                timestamp.seconds += repeat * 86400 // 86400 seconds in 24 hours
+                updateEventTime = true;
+              }
+
+              let eventDate = timestamp.toDate();
+
+              let mm = eventDate.getMonth() + 1;
+              let dd = eventDate.getDate();
+              let yyyy = eventDate.getFullYear();
+              let hour = eventDate.getHours() + ":";
+              if (eventDate.getMinutes() < 10){
+                hour = hour + "0";
+              }
+              hour = hour + eventDate.getMinutes();
+              eventDate = dd + "/" + mm + "/" + yyyy + ", " + hour;
+
+              const eventObj = {
+                eventID: event.id,
+                date: eventDate, 
+                time: hour,
+                duration: event.get('duration'),
+                title: event.get('title'),
+                description: event.get('description'),
+                location: event.get('Where'),
+                layerID: event.get('layerID'),
+                repeat: repeat,
+              }
+
               if (repeat === 0){
-                eventsArray.push({
-                  eventID: event.id,
-                  date: date, 
-                  time: hour,
-                  duration: event.get('duration'),
-                  title: event.get('title'),
-                  description: event.get('description'),
-                  location: event.get('Where'),
-                  layerID: event.get('layerID'),
-                });
+                eventsArray.push(eventObj);
               }
               else{
-                reEventsArray.push({
-                  eventID: event.id,
-                  date: date, 
-                  time: hour,
-                  duration: event.get('duration'),
-                  title: event.get('title'),
-                  description: event.get('description'),
-                  location: event.get('Where'),
-                  layerID: event.get('layerID'),
-                  repeat: repeat,
-                });
+                reEventsArray.push(eventObj);
               }
+
+              if (updateEventTime){
+                setDoc(doc(collection(FIREBASE_DB, 'events'), event.id), {...eventObj, When: eventDate});
+              }
+
             });
           }
         }
@@ -115,30 +136,30 @@ function EventList({route, navigation}) {
       );
     }
     
-    const toggleApproval = (dayId) => {
-      const updatedDays = days.map((day) =>
-        day.id === dayId ? { ...day, approved: !day.approved } : day
-      );
-      setDays(updatedDays);
-    };
+    // const toggleApproval = (dayId) => {
+    //   const updatedDays = days.map((day) =>
+    //     day.id === dayId ? { ...day, approved: !day.approved } : day
+    //   );
+    //   setDays(updatedDays);
+    // };
 
 
-    const renderDayItem = (day) => {
-      return (
-        <View key={day.id} style={styles.dayItem}>
-          <Text>
-            day: {day.day} date {day.data}
-          </Text>
-          <TouchableOpacity
-            style={[
-              styles.checkbox,
-              { backgroundColor: day.approved ? "green" : "gray" },
-            ]}
-            onPress={() => toggleApproval(day.id)}
-          ></TouchableOpacity>
-        </View>
-      );
-    };
+    // const renderDayItem = (day) => {
+    //   return (
+    //     <View key={day.id} style={styles.dayItem}>
+    //       <Text>
+    //         day: {day.day} date {day.data}
+    //       </Text>
+    //       <TouchableOpacity
+    //         style={[
+    //           styles.checkbox,
+    //           { backgroundColor: day.approved ? "green" : "gray" },
+    //         ]}
+    //         onPress={() => toggleApproval(day.id)}
+    //       ></TouchableOpacity>
+    //     </View>
+    //   );
+    // };
 
     const renderEvents = ({ item }) => {
         return (
@@ -182,7 +203,7 @@ function EventList({route, navigation}) {
         <View style={styles.eventDetails}>
           <Text style={styles.eventTitle}>{item.title}</Text>
           <Text style={styles.eventDescription}>{item.description}</Text>
-          <Text style={styles.eventDate}>Start Date : {item.date}</Text>
+          <Text style={styles.eventDate}>Next Date : {item.date}</Text>
           <Text style={styles.eventDate}>every :{item.repeat} days</Text>
           <Text style={styles.eventLocation}>volunteer at : {item.location} </Text>
           <Text>hours : {item.duration}</Text>
@@ -221,42 +242,21 @@ function EventList({route, navigation}) {
     const updatedEvents = events.filter((e) => e.id !== event.id);
     setEvents(updatedEvents);
   };
-  
-  const handleAddReEventSubmit = () => {
-    const newId = reEvents.length + 1;
-    const newReEventWithId = { ...newReEvent, id: newId, approvedDay: [] };
 
-    const updatedReEvents = [...reEvents, newReEventWithId];
-    setReEvents(updatedReEvents);
+  const handleAddEventSubmit = () => {
+    let eventToAdd = {...newEvent, When: date};
+    
+    // Create a new message with a unique ID
+    setDoc(doc(collection(FIREBASE_DB, 'events')), eventToAdd);
+    const newId = events.length + 1;
+    const newMessageWithId = { ...newEvent, id: newId };
 
-    setReEvents({
-      title: "",
-      description: "",
-      fromDate: "",
-      toDate: "",
-      volunteerPlace: "",
-      hours: 0,
+    // Reset the new message state and close the modal
+    setNewEvent({
+      layerID: uid,
     });
-
-    setAddingReEvent(false);
-  };
-
-    const handleAddEventSubmit = () => {
-      console.log('Add New Event button pressed');
-      // Create a new message with a unique ID
-      setDoc(doc(collection(FIREBASE_DB, 'events')), newEvent);
-      const newId = events.length + 1;
-      const newMessageWithId = { ...newEvent, id: newId };
-
-      // Reset the new message state and close the modal
-      setNewEvent({
-        title: "",
-        description: "",
-        date: "",
-        location: "",
-      });
-      fetchData();
-      setAddingEvent(false);
+    fetchData();
+    setAddingEvent(false);
   };
   
 
@@ -298,23 +298,11 @@ function EventList({route, navigation}) {
             />
             <Text style={styles.buttonText}>Add Event</Text>
           </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.addButton}
-            onPress={() => {
-              setAddingReEvent(true);
-            }}
-          >
-            <Icon
-              name="plus"
-              size={18}
-              color="#fff"
-              style={styles.buttonIcon}
-            />
-            <Text style={styles.buttonText}>Add re-accuring Event</Text>
-          </TouchableOpacity>
         </View>
 
         <Modal visible={addingEvent} animationType="slide">
+          {/* TODO: front - improve UI/UX */}
+          {/* TODO: front - add errors for input fields */}
             <KeyboardAwareScrollView>
           <View style={styles.modalContainer}>
               <Text style={styles.modalTitle}>Add New Event</Text>
@@ -335,15 +323,44 @@ function EventList({route, navigation}) {
                   style={styles.modalInput}
                   placeholder="Event Description"
                 />
-                <TextInput
-                  onChangeText={(text) => setNewEvent({ ...newEvent, date: text })}
-                  style={styles.modalInput}
-                  placeholderTextColor="#999"
-                  placeholder="Event Date"
-                />
+                <View style={styles.pickedDateContainer}>
+                  <Text style={styles.pickedDate}>{date.toUTCString()}</Text>
+                </View>
+                {!isDatePickerShow && (
+                  <View style={styles.btnContainer}>
+                    <Button title="Select date" color="purple" onPress={showDatePicker} />
+                  </View>
+                )}
+
+                {!isDatePickerShow && (
+                  <View style={styles.btnContainer}>
+                    <Button title="Select time" color="purple" onPress={showTimePicker} />
+                  </View>
+                )}
+
+                {isDatePickerShow && (
+                  <DateTimePicker
+                    value={date}
+                    mode={'date'}
+                    display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                    is24Hour={true}
+                    onChange={onChange}
+                    style={styles.datePicker}
+                  />
+                )}
+                {isTimePickerShow && (
+                  <DateTimePicker
+                    value={date}
+                    mode={'time'}
+                    display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                    is24Hour={true}
+                    onChange={onChange}
+                    style={styles.datePicker}
+                  />
+                )}
                 <TextInput
                   onChangeText={(text) =>
-                    setNewEvent({ ...newEvent, location: text })
+                    setNewEvent({ ...newEvent, Where: text })
                   }
                   placeholderTextColor="#999"
                   style={styles.modalInput}
@@ -351,11 +368,19 @@ function EventList({route, navigation}) {
                 />
                 <TextInput
                   onChangeText={(text) =>
-                    setNewEvent({ ...newReEvent, hours: text })
+                    setNewEvent({ ...newEvent, duration: text })
                   }
                   placeholderTextColor="#999"
                   style={styles.modalInput}
                   placeholder="Event Hours"
+                />
+                <TextInput
+                  onChangeText={(text) => 
+                    setNewEvent({ ...newEvent, repeat: parseInt(text) })
+                  }
+                  placeholderTextColor="#999"
+                  style={styles.modalInput}
+                  placeholder="repeat event after x days(0 if this is a one time event)"
                 />
               </View>
 
@@ -370,76 +395,7 @@ function EventList({route, navigation}) {
             </KeyboardAwareScrollView>
         </Modal>
 
-        <Modal visible={addingReEvent} animationType="slide">
-          <KeyboardAwareScrollView>
-            <View style={styles.modalContainer}>
-              <Text style={styles.modalTitle}>Add New Event</Text>
-              <View style={styles.modalContent}>
-                <TextInput
-                  onChangeText={(text) =>
-                    setReEvent({ ...newReEvent, title: text })
-                  }
-                  placeholderTextColor="#999"
-                  style={styles.modalInput}
-                  placeholder="Event Title"
-                />
-                <TextInput
-                  onChangeText={(text) =>
-                    setReEvent({ ...newReEvent, description: text })
-                  }
-                  placeholderTextColor="#999"
-                  style={styles.modalInput}
-                  placeholder="Event Description"
-                />
-                <TextInput
-                  onChangeText={(text) =>
-                    setReEvent({ ...newReEvent, fromDate: text })
-                  }
-                  placeholderTextColor="#999"
-                  style={styles.modalInput}
-                  placeholder="Event Start Date"
-                />
-                <TextInput
-                  onChangeText={(text) =>
-                    setReEvent({ ...newReEvent, toDate: text })
-                  }
-                  placeholderTextColor="#999"
-                  style={styles.modalInput}
-                  placeholder="Event End Date"
-                />
-                <TextInput
-                  onChangeText={(text) =>
-                    setReEvent({ ...newReEvent, volunteerPlace: text })
-                  }
-                  style={styles.modalInput}
-                  placeholderTextColor="#999"
-                  placeholder="Volunteer Place"
-                />
-                <TextInput
-                  onChangeText={(text) =>
-                    setReEvent({ ...newReEvent, hours: text })
-                  }
-                  placeholderTextColor="#999"
-                  style={styles.modalInput}
-                  placeholder="Event Hours"
-                />
-              </View>
-
-              <View style={styles.modalButtons}>
-                <Button
-                  title="Cancel"
-                  onPress={() => setAddingReEvent(false)}
-                />
-                <Button
-                  title="Submit"
-                  onPress={() => handleAddReEventSubmit()}
-                />
-              </View>
-            </View>
-          </KeyboardAwareScrollView>
-        </Modal>
-
-        <Modal visible={ViewReEventDays} animationType="slide">
+        {/* <Modal visible={ViewReEventDays} animationType="slide">
           <View style={styles.modalContainer}>
             <Text style={styles.modalTitle}>Day List</Text>
             <View style={styles.dayListContainer}>
@@ -456,7 +412,7 @@ function EventList({route, navigation}) {
               />
             </View>
           </View>
-        </Modal>
+        </Modal> */}
       </View>
     );
 }
@@ -516,11 +472,14 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     backgroundColor: "#00bfff",
     paddingHorizontal: 50,
+    width: '100%',
     paddingVertical: 8,
   },
   buttonContainer: {
     flexDirection: "row",
     justifyContent: "space-between",
+    alignSelf: 'center',
+    width: '80%',
     marginBottom: 20,
   },
   modalContainer: {
@@ -610,6 +569,26 @@ const styles = StyleSheet.create({
     backgroundColor: "red",
     borderRadius: 5,
     marginBottom: 16,
+  },
+  pickedDateContainer: {
+    padding: 20,
+    backgroundColor: '#eee',
+    borderRadius: 10,
+  },
+  pickedDate: {
+    fontSize: 18,
+    color: 'black',
+  },
+  btnContainer: {
+    padding: 30,
+  },
+  // This only works on iOS
+  datePicker: {
+    width: 320,
+    height: 260,
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'flex-start',
   },
 });
 
