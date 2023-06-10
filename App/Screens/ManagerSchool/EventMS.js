@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, FlatList, TextInput, Text, Modal, StyleSheet, TouchableOpacity, Alert } from 'react-native';
+import { View, FlatList, TextInput, Text, Modal, StyleSheet, TouchableOpacity, Alert, SafeAreaView, SectionList } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { FIREBASE_DB } from '../../../firebaseConfig';
 import { query, where, collection, getDocs, Timestamp, setDoc, doc, deleteDoc } from 'firebase/firestore';
@@ -12,13 +12,20 @@ import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view
 function EventList({route, navigation}) {
   const uid = route.params;
   const [loading, setLoading] = useState(true);
-  const [addingEvent, setAddingEvent] = useState(false); // state for adding new event
+  const [addingEvent, setAddingEvent] = useState(false);
+  const [markAttendance, setMarkAttendance] = useState(false);
   const [isDatePickerShow, setIsDatePickerShow] = useState(false);
   const [isTimePickerShow, setIsTimePickerShow] = useState(false);
   const [date, setDate] = useState();
+  const [students, setStudents] = useState([
+    {
+      title: 'Student List',
+      data: []
+    }
+  ]);
   const [events, setEvents] = useState([]);
   const [reEvents, setReEvents] = useState([]);
-  const [newEvent, setNewEvent] = useState({
+  const [eventEdit, setEventEdit] = useState({
     layerID: uid,
   });
 
@@ -70,7 +77,7 @@ function EventList({route, navigation}) {
               let eventSec = timestamp.seconds;
               let nowSec = now.getTime() / 1000;
 
-              if (repeat === 0 && nowSec > eventDate + (eventDuration * 3600) + 86400){
+              if (repeat === 0 && nowSec > eventSec + (eventDuration * 3600) + 86400){
                 console.log("event is at least one day old");
               }
               else{
@@ -141,31 +148,34 @@ function EventList({route, navigation}) {
         </View>
       );
     }
-    
-    // const toggleApproval = (dayId) => {
-    //   const updatedDays = days.map((day) =>
-    //     day.id === dayId ? { ...day, approved: !day.approved } : day
-    //   );
-    //   setDays(updatedDays);
-    // };
 
 
-    // const renderDayItem = (day) => {
-    //   return (
-    //     <View key={day.id} style={styles.dayItem}>
-    //       <Text>
-    //         day: {day.day} date {day.data}
-    //       </Text>
-    //       <TouchableOpacity
-    //         style={[
-    //           styles.checkbox,
-    //           { backgroundColor: day.approved ? "green" : "gray" },
-    //         ]}
-    //         onPress={() => toggleApproval(day.id)}
-    //       ></TouchableOpacity>
-    //     </View>
-    //   );
-    // };
+    const renderStudentItem = ({ item }) => {
+      return (
+        <View style={styles.itemContainer}>
+          <View style={styles.studentItem}>
+            <Text style={styles.nameText}>{item.name}</Text>
+            <TouchableOpacity
+              style={[styles.checkbox, item.approved && styles.checkboxChecked]}
+              onPress={() => {
+                const updatedStudents = students.map(section => {
+                  const updatedData = section.data.map(student => {
+                    if (student.uid === item.uid) {
+                      return { ...student, approved: !student.approved };
+                    }
+                    return student;
+                  });
+                  return { ...section, data: updatedData };
+                });
+                setStudents(updatedStudents);
+              }}
+            >
+              {item.approved && <Text style={styles.checkboxIcon}>✓</Text>}
+            </TouchableOpacity>
+          </View>
+        </View>
+      );
+    };
 
     const renderEvents = ({ item }) => {
         return (
@@ -188,7 +198,9 @@ function EventList({route, navigation}) {
 
               <TouchableOpacity
                 style={styles.button}
-                onPress={() => handleApprove(item)}
+                onPress={() => {
+                  handleMarkAttendance(item);
+                }}
               >
                 <Icon name="check" size={24} color="green" />
               </TouchableOpacity>
@@ -224,7 +236,9 @@ function EventList({route, navigation}) {
 
           <TouchableOpacity
             style={styles.button}
-            onPress={() => setViewReEventsDays(true)}
+            onPress={() => {
+              handleMarkAttendance(item);
+            }}
           >
             <Icon name="check" size={24} color="green" />
           </TouchableOpacity>
@@ -232,14 +246,6 @@ function EventList({route, navigation}) {
       </View>
     );
   };
-
-  
-
-  // const handledeleteReEvent = (event) => {
-  //   console.log(event);
-  //   deleteDoc(doc(FIREBASE_DB, 'events', event.eventID));
-  //   fetchData();
-  // };
   
   const handledeleteEvent = (event) => {
     console.log(event);
@@ -258,19 +264,50 @@ function EventList({route, navigation}) {
   };
 
   
-  const handleApprove = (event) => {
-    const updatedEvents = events.filter((e) => e.id !== event.id);
-    setEvents(updatedEvents);
+  const handleMarkAttendance = async (event) => {
+    setMarkAttendance(true);
+    let users = new Array();
+    const getStudentsQ = query(collection(FIREBASE_DB, 'users'), where('manager', '==', uid));
+    let querySnapshot = await getDocs(getStudentsQ);
+
+    if (querySnapshot.empty){
+      console.log("didnt find any students of this manager", event.layerID, " layer");
+    }
+    else{
+      console.log("found users of this manager");
+      querySnapshot.forEach(user => users.push({uid: user.get('layer'), name: user.get('name'), approved: true}));
+      console.log(users);
+      setStudents(users);
+      setEventEdit(event);
+    }
+    console.log(markAttendance);
   };
 
+  const handleApproveAttendance = () => {
+    console.log("adding hours of event: ", eventEdit);
+    students.forEach((student) => {
+      if (student.approved){
+        setDoc(doc(FIREBASE_DB, 'hours', eventEdit.eventID), {
+          VID: student.id,
+          duration: eventEdit.duration,
+          eventID: eventEdit.eventID,
+          from: eventEdit.date,
+          layer: eventEdit.layerID,
+        })
+      }
+    })
+    // setMarkAttendance(false);
+  }
+
+  // TODO: back - add "approved" field to event
   const handleAddEventSubmit = () => {
-    let eventToAdd = {...newEvent, date: date};
+    let eventToAdd = {...eventEdit, date: date};
     
     setDoc(doc(collection(FIREBASE_DB, 'events')), eventToAdd);
     const newId = events.length + 1;
-    const newMessageWithId = { ...newEvent, id: newId };
+    const newMessageWithId = { ...eventEdit, id: newId };
 
-    setNewEvent({
+    setEventEdit({
       layerID: uid,
     });
     fetchData();
@@ -321,121 +358,169 @@ function EventList({route, navigation}) {
         <Modal visible={addingEvent} animationType="slide">
           {/* TODO: front - improve UI/UX */}
           {/* TODO: front - add errors for input fields */}
-            <KeyboardAwareScrollView>
-          <View style={styles.modalContainer}>
-              <Text style={styles.modalTitle}>Add New Event</Text>
-              <View style={styles.modalContent}>
-                <TextInput
-                  onChangeText={(text) =>
-                    setNewEvent({ ...newEvent, title: text })
-                  }
-                  style={styles.modalInput}
-                  placeholderTextColor="#999"
-                  placeholder="Event Title"
-                />
-                <TextInput
-                  onChangeText={(text) =>
-                    setNewEvent({ ...newEvent, description: text })
-                  }
-                  placeholderTextColor="#999"
-                  style={styles.modalInput}
-                  placeholder="Event Description"
-                />
-                <View style={styles.pickedDateContainer}>
-                  <Text style={styles.pickedDate}>{date.toUTCString()}</Text>
+          <KeyboardAwareScrollView>
+            <View style={styles.modalContainer}>
+                <Text style={styles.modalTitle}>Add New Event</Text>
+                <View style={styles.modalContent}>
+                  <TextInput
+                    onChangeText={(text) =>
+                      setEventEdit({ ...eventEdit, title: text })
+                    }
+                    style={styles.modalInput}
+                    placeholderTextColor="#999"
+                    placeholder="Event Title"
+                  />
+                  <TextInput
+                    onChangeText={(text) =>
+                      setEventEdit({ ...eventEdit, description: text })
+                    }
+                    placeholderTextColor="#999"
+                    style={styles.modalInput}
+                    placeholder="Event Description"
+                  />
+                  <View style={styles.pickedDateContainer}>
+                    <Text style={styles.pickedDate}>{date.toUTCString()}</Text>
+                  </View>
+                  {!isDatePickerShow && (
+                    <View style={styles.btnContainer}>
+                      <Button title="Select date" color="purple" onPress={showDatePicker} />
+                    </View>
+                  )}
+
+                  {!isDatePickerShow && (
+                    <View style={styles.btnContainer}>
+                      <Button title="Select time" color="purple" onPress={showTimePicker} />
+                    </View>
+                  )}
+
+                  {isDatePickerShow && (
+                    <DateTimePicker
+                      value={date}
+                      mode={'date'}
+                      display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                      is24Hour={true}
+                      onChange={onChange}
+                      style={styles.datePicker}
+                    />
+                  )}
+                  {isTimePickerShow && (
+                    <DateTimePicker
+                      value={date}
+                      mode={'time'}
+                      display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                      is24Hour={true}
+                      onChange={onChange}
+                      style={styles.datePicker}
+                    />
+                  )}
+                  <TextInput
+                    onChangeText={(text) =>
+                      setEventEdit({ ...eventEdit, location: text })
+                    }
+                    placeholderTextColor="#999"
+                    style={styles.modalInput}
+                    placeholder="Event Location"
+                  />
+                  <TextInput
+                    onChangeText={(text) =>
+                      setEventEdit({ ...eventEdit, duration: text })
+                    }
+                    placeholderTextColor="#999"
+                    style={styles.modalInput}
+                    placeholder="Event Hours"
+                  />
+                  <TextInput
+                    onChangeText={(text) => 
+                      setEventEdit({ ...eventEdit, repeat: parseInt(text) })
+                    }
+                    placeholderTextColor="#999"
+                    style={styles.modalInput}
+                    placeholder="repeat event after x days(0 if this is a one time event)"
+                  />
                 </View>
-                {!isDatePickerShow && (
-                  <View style={styles.btnContainer}>
-                    <Button title="Select date" color="purple" onPress={showDatePicker} />
-                  </View>
-                )}
 
-                {!isDatePickerShow && (
-                  <View style={styles.btnContainer}>
-                    <Button title="Select time" color="purple" onPress={showTimePicker} />
-                  </View>
-                )}
-
-                {isDatePickerShow && (
-                  <DateTimePicker
-                    value={date}
-                    mode={'date'}
-                    display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-                    is24Hour={true}
-                    onChange={onChange}
-                    style={styles.datePicker}
+                <View style={styles.modalButtons}>
+                  <Button
+                    title="Cancel"
+                    onPress={() => setAddingEvent(false)}
                   />
-                )}
-                {isTimePickerShow && (
-                  <DateTimePicker
-                    value={date}
-                    mode={'time'}
-                    display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-                    is24Hour={true}
-                    onChange={onChange}
-                    style={styles.datePicker}
-                  />
-                )}
-                <TextInput
-                  onChangeText={(text) =>
-                    setNewEvent({ ...newEvent, location: text })
-                  }
-                  placeholderTextColor="#999"
-                  style={styles.modalInput}
-                  placeholder="Event Location"
-                />
-                <TextInput
-                  onChangeText={(text) =>
-                    setNewEvent({ ...newEvent, duration: text })
-                  }
-                  placeholderTextColor="#999"
-                  style={styles.modalInput}
-                  placeholder="Event Hours"
-                />
-                <TextInput
-                  onChangeText={(text) => 
-                    setNewEvent({ ...newEvent, repeat: parseInt(text) })
-                  }
-                  placeholderTextColor="#999"
-                  style={styles.modalInput}
-                  placeholder="repeat event after x days(0 if this is a one time event)"
-                />
-              </View>
-
-              <View style={styles.modalButtons}>
-                <Button
-                  title="Cancel"
-                  onPress={() => setAddingEvent(false)}
-                />
-                <Button title="Submit" onPress={() => handleAddEventSubmit()} />
-              </View>
-          </View>
-            </KeyboardAwareScrollView>
+                  <Button title="Submit" onPress={() => handleAddEventSubmit()} />
+                </View>
+            </View>
+          </KeyboardAwareScrollView>
         </Modal>
 
-        {/* <Modal visible={ViewReEventDays} animationType="slide">
-          <View style={styles.modalContainer}>
-            <Text style={styles.modalTitle}>Day List</Text>
-            <View style={styles.dayListContainer}>
-              {days.map(renderDayItem)}
-            </View>
-            <View style={styles.modalButtons}>
-              <Button
-                title="Approve"
-                onPress={() => console.log("Approve button pressed")}
-              />
-              <Button
-                title="Cancel"
-                onPress={() => setViewReEventsDays(false)}
-              />
-            </View>
+        <Modal visible={markAttendance} animationType="slide">
+        <SafeAreaView style={styles.container}>
+          <SectionList
+            sections={students}
+            keyExtractor={(item) => item.uid}
+            renderItem={renderStudentItem}
+            renderSectionHeader={({ section: { title } }) => (
+              <Text style={styles.header}>{title}</Text>
+            )}
+          />
+          <View style={styles.buttonContainer}>
+            <Button style={styles.button} title="Approve attendance" onPress={handleApproveAttendance}/>
           </View>
-        </Modal> */}
+        </SafeAreaView>
+        </Modal>
       </View>
     );
 }
 
 const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#fff',
+  },
+  header: {
+    fontSize: 32,
+    backgroundColor: '#fff',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    marginTop: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: '#ccc',
+  },
+  itemContainer: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#ccc',
+  },
+  studentItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 8,
+  },
+  nameText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  checkbox: {
+    width: 20,
+    height: 20,
+    borderRadius: 4,
+    borderWidth: 2,
+    borderColor: '#999',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 10,
+  },
+  checkboxChecked: {
+    backgroundColor: '#4CAF50',
+    borderColor: '#4CAF50',
+  },
+  checkboxIcon: {
+    color: '#fff',
+    fontSize: 14,
+  },
+  scrollView: {
+    backgroundColor: 'pink',
+    marginHorizontal: 20,
+  },
   eventList: {
     flex: 1,
     padding: 16,
@@ -495,10 +580,12 @@ const styles = StyleSheet.create({
   },
   buttonContainer: {
     flexDirection: "row",
-    justifyContent: "space-between",
+    justifyContent: 'center',
+    alignItems: 'center',
     alignSelf: 'center',
-    width: '80%',
+    width: '100%',
     marginBottom: 20,
+    // backgroundColor: 'black',
   },
   modalContainer: {
     flex: 1,
@@ -542,7 +629,6 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontWeight: "bold",
   },
-
   line: {
     marginBottom: 20,
     width: "100%",
@@ -553,28 +639,6 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: "bold",
     marginBottom: 16,
-  },
-  dayListContainer: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    justifyContent: "center",
-    alignItems: "center",
-    marginBottom: 16,
-  },
-  dayItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    margin: 8,
-  },
-  checkbox: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    borderWidth: 2,
-    borderColor: "black",
-    justifyContent: "center",
-    alignItems: "center",
-    marginHorizontal: 8,
   },
   approveButton: {
     padding: 10,
@@ -600,7 +664,6 @@ const styles = StyleSheet.create({
   btnContainer: {
     padding: 30,
   },
-  // This only works on iOS
   datePicker: {
     width: 320,
     height: 260,

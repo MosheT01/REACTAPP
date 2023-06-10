@@ -69,16 +69,11 @@ const VolunteerHoursPage = ({route,navigation}) => {
         console.log("didnt find any hours for this volunteer from ", layerID, " layer");
       }
       else{
-
+        console.log("found users from this manager");
         users.push({ label: "Names", value: ""});
-        querySnapshot.forEach(user => {
-          console.log("found users from this manager");
-          console.log();
-          users.push({ label: user.get('name'), value: user.get('layer')});
-          counter++;
-          })
-          console.log(users);
-          setSelectedUsers(users);
+        querySnapshot.forEach(user => users.push({ label: user.get('name'), value: user.get('layer')}));
+        console.log(users);
+        setSelectedUsers(users);
       }
     } catch (error) {
       console.log("Error fetching events data: ", error);
