@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { View, FlatList, TextInput, Text, Modal, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, FlatList, TextInput, Text, Modal, StyleSheet, TouchableOpacity, Alert, SafeAreaView, SectionList } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { FIREBASE_DB } from '../../../firebaseConfig';
-import { query, where, collection, getDocs, Timestamp, setDoc, doc, deleteDoc } from 'firebase/firestore';
+import { query, where, collection, getDocs, Timestamp, setDoc, doc, deleteDoc, updateDoc, getDoc } from 'firebase/firestore';
 
 import { Button } from 'react-native-elements';
 import { Ionicons } from "@expo/vector-icons";
@@ -11,16 +11,40 @@ import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view
 
 function EventList({route, navigation}) {
   const uid = route.params;
+  const [students, setStudents] = useState([
+    {
+      title: 'Student List',
+      data: []
+    }
+  ]);
   const [loading, setLoading] = useState(true);
-  const [addingEvent, setAddingEvent] = useState(false); // state for adding new event
+  const [addingEvent, setAddingEvent] = useState(false);
+  const [markAttendance, setMarkAttendance] = useState(false);
   const [isDatePickerShow, setIsDatePickerShow] = useState(false);
   const [isTimePickerShow, setIsTimePickerShow] = useState(false);
   const [date, setDate] = useState();
+  // const [students, setStudents] = useState;
   const [events, setEvents] = useState([]);
   const [reEvents, setReEvents] = useState([]);
-  const [newEvent, setNewEvent] = useState({
+  const [isShowDatePicker, isSetShowDatePicker] = useState(false);
+  const [eventEdit, setEventEdit] = useState({
     layerID: uid,
+    title: '',
+    description: '',
+    location: '',
+    duration: '',
+    repeat: '',
+    approved: false,
   });
+
+  const options = {
+    timeZone: 'Asia/Jerusalem', // Set the time zone to Israel (Asia/Jerusalem)
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: 'numeric',
+  };
 
     const showDatePicker = () => {
       setIsDatePickerShow(true);
@@ -48,7 +72,8 @@ function EventList({route, navigation}) {
 
         // building layerID to check for events from any layer(school manager or regional manager)
         const layers = uid.split('.');
-        for (i = 1; i <= 3; i++){
+        // to only show if SM accepted: for (i = layers.length - 1; i <= layers.length; i++)
+        for (i = 1 ; i <= 3; i++){ // run for all layers
           let layerID = layers[0];
           for (j = 1; j < i; j++){
             layerID += "." + layers[j]; 
@@ -70,44 +95,38 @@ function EventList({route, navigation}) {
               let eventSec = timestamp.seconds;
               let nowSec = now.getTime() / 1000;
 
-              while (nowSec > eventSec + (eventDuration * 3600) && repeat !== 0){
-                eventSec += repeat * 86400;
-                updateEventTime = true;
-              }
-
-              let eventDate = new Date(eventSec * 1000);
-
-              let mm = eventDate.getMonth() + 1;
-              let dd = eventDate.getDate();
-              let yyyy = eventDate.getFullYear();
-              let hour = eventDate.getHours() + 3 + ":";
-              if (eventDate.getMinutes() < 10){
-                hour = hour + "0";
-              }
-              hour = hour + eventDate.getMinutes();
-              const eventDateString = dd + "/" + mm + "/" + yyyy + ", " + hour;
-
-              const eventObj = {
-                eventID: event.id,
-                date: eventDateString, 
-                time: hour,
-                duration: eventDuration,
-                title: event.get('title'),
-                description: event.get('description'),
-                location: event.get('location'),
-                layerID: event.get('layerID'),
-                repeat: repeat,
-              }
-
-              if (repeat === 0){
-                eventsArray.push(eventObj);
+              if ((repeat === 0 && nowSec > eventSec + (eventDuration * 3600) + 86400) || event.get('approved')){
+                console.log("event is at least one day old");
               }
               else{
-                reEventsArray.push(eventObj);
-              }
-
-              if (updateEventTime && repeat !== 0){
-                setDoc(doc(collection(FIREBASE_DB, 'events'), event.id), {...eventObj, date: eventDate});
+                while (repeat !== 0 && nowSec > eventSec + (eventDuration * 3600)){
+                  eventSec += repeat * 86400;
+                  updateEventTime = true;
+                }
+  
+                let eventDate = new Date(eventSec * 1000);
+  
+                const eventObj = {
+                  eventID: event.id,
+                  date: eventDate, 
+                  duration: eventDuration,
+                  title: event.get('title'),
+                  description: event.get('description'),
+                  location: event.get('location'),
+                  layerID: event.get('layerID'),
+                  repeat: repeat,
+                }
+  
+                if (repeat === 0){
+                  eventsArray.push(eventObj);
+                }
+                else{
+                  reEventsArray.push(eventObj);
+                }
+  
+                if (updateEventTime && repeat !== 0){
+                  setDoc(doc(collection(FIREBASE_DB, 'events'), event.id), {...eventObj, date: eventDate});
+                }
               }
 
             });
@@ -136,31 +155,33 @@ function EventList({route, navigation}) {
         </View>
       );
     }
-    
-    // const toggleApproval = (dayId) => {
-    //   const updatedDays = days.map((day) =>
-    //     day.id === dayId ? { ...day, approved: !day.approved } : day
-    //   );
-    //   setDays(updatedDays);
-    // };
 
-
-    // const renderDayItem = (day) => {
-    //   return (
-    //     <View key={day.id} style={styles.dayItem}>
-    //       <Text>
-    //         day: {day.day} date {day.data}
-    //       </Text>
-    //       <TouchableOpacity
-    //         style={[
-    //           styles.checkbox,
-    //           { backgroundColor: day.approved ? "green" : "gray" },
-    //         ]}
-    //         onPress={() => toggleApproval(day.id)}
-    //       ></TouchableOpacity>
-    //     </View>
-    //   );
-    // };
+    const renderStudentItem = ({ item }) => {
+      return (
+        <View style={styles.itemContainer}>
+          <View style={styles.studentItem}>
+            <Text style={styles.nameText}>{item.name}</Text>
+            <TouchableOpacity
+              style={[styles.checkbox, item.approved && styles.checkboxChecked]}
+              onPress={() => {
+                const updatedStudents = students.map(section => {
+                  const updatedData = section.data.map(student => {
+                    if (student.uid === item.uid) {
+                      return { ...student, approved: !student.approved };
+                    }
+                    return student;
+                  });
+                  return { ...section, data: updatedData };
+                });
+                setStudents(updatedStudents);
+              }}
+            >
+              {item.approved && <Text style={styles.checkboxIcon}>✓</Text>}
+            </TouchableOpacity>
+          </View>
+        </View>
+      );
+    };
 
     const renderEvents = ({ item }) => {
         return (
@@ -169,7 +190,7 @@ function EventList({route, navigation}) {
             <View style={styles.eventDetails}>
               <Text style={styles.eventTitle}>{item.title}</Text>
               <Text style={styles.eventDescription}>{item.description}</Text>
-              <Text style={styles.eventDate}>{item.date}</Text>
+              <Text style={styles.eventDate}>{item.date.toLocaleString('en-US', options)}</Text>
               <Text style={styles.eventLocation}>{item.location}</Text>
               <Text>hours : {item.duration}</Text>
             </View>
@@ -183,7 +204,9 @@ function EventList({route, navigation}) {
 
               <TouchableOpacity
                 style={styles.button}
-                onPress={() => handleApprove(item)}
+                onPress={() => {
+                  handleMarkAttendance(item);
+                }}
               >
                 <Icon name="check" size={24} color="green" />
               </TouchableOpacity>
@@ -204,7 +227,7 @@ function EventList({route, navigation}) {
         <View style={styles.eventDetails}>
           <Text style={styles.eventTitle}>{item.title}</Text>
           <Text style={styles.eventDescription}>{item.description}</Text>
-          <Text style={styles.eventDate}>Next Date : {item.date}</Text>
+          <Text style={styles.eventDate}>Next Date : {item.date.toLocaleString('en-US', options)}</Text>
           <Text style={styles.eventDate}>every :{item.repeat} days</Text>
           <Text style={styles.eventLocation}>volunteer at : {item.location} </Text>
           <Text>hours : {item.duration}</Text>
@@ -219,7 +242,9 @@ function EventList({route, navigation}) {
 
           <TouchableOpacity
             style={styles.button}
-            onPress={() => setViewReEventsDays(true)}
+            onPress={() => {
+              handleMarkAttendance(item);
+            }}
           >
             <Icon name="check" size={24} color="green" />
           </TouchableOpacity>
@@ -227,38 +252,90 @@ function EventList({route, navigation}) {
       </View>
     );
   };
-
-  
-
-  // const handledeleteReEvent = (event) => {
-  //   console.log(event);
-  //   deleteDoc(doc(FIREBASE_DB, 'events', event.eventID));
-  //   fetchData();
-  // };
   
   const handledeleteEvent = (event) => {
     console.log(event);
-    deleteDoc(doc(FIREBASE_DB, 'events', event.eventID));
-    fetchData();
+    Alert.alert('Are you sure you want to delete?', 'deleting an event is a permenant action that cant be reversed', [
+      {
+        text: 'Cancel',
+        onPress: () => console.log('Cancel Pressed'),
+        style: 'cancel',
+      },
+      {text: 'OK', onPress: () => {
+        console.log('OK Pressed');
+        deleteDoc(doc(FIREBASE_DB, 'events', event.eventID));
+        fetchData();
+      }},
+    ]);
   };
 
   
-  const handleApprove = (event) => {
-    const updatedEvents = events.filter((e) => e.id !== event.id);
-    setEvents(updatedEvents);
+  const handleMarkAttendance = async (event) => {
+    students.at(0).data = [];
+    const getStudentsQ = query(collection(FIREBASE_DB, 'users'), where('manager', '==', uid));
+    let querySnapshot = await getDocs(getStudentsQ);
+
+    if (querySnapshot.empty){
+      console.log("didnt find any students of this manager", event.layerID, " layer");
+    }
+    else{
+      console.log("found users of this manager");
+      querySnapshot.forEach(user => students.at(0).data.push({uid: user.get('layer'), name: user.get('name'), approved: true}));
+
+      console.log(typeof event.date);
+      setEventEdit(event);
+    }
+    setMarkAttendance(true);
+    console.log(students);
   };
 
-  const handleAddEventSubmit = () => {
-    let eventToAdd = {...newEvent, date: date};
-    
-    // Create a new message with a unique ID
-    setDoc(doc(collection(FIREBASE_DB, 'events')), eventToAdd);
-    const newId = events.length + 1;
-    const newMessageWithId = { ...newEvent, id: newId };
+  const handleApproveAttendance = () => {
+    console.log("adding hours of event: ", eventEdit);
+    students.at(0).data.forEach(async (student) => {
+      if (student.approved){
+        console.log("adding hours to: ", student.name);
+        setDoc(doc(collection(FIREBASE_DB, 'Hours')), {
+          VID: student.uid,
+          duration: eventEdit.duration,
+          eventID: eventEdit.eventID,
+          from: eventEdit.date,
+          layer: eventEdit.layerID,
+        })
 
-    // Reset the new message state and close the modal
-    setNewEvent({
+        if (eventEdit.repeat === 0){
+          updateDoc(doc(collection(FIREBASE_DB, 'events'), eventEdit.eventID), {
+            approved: true,
+          })
+        }
+        else{
+          const eventDocSnap = await getDoc(doc(FIREBASE_DB, 'events', eventEdit.eventID));
+          if (eventDocSnap.exists()) {
+            const timestamp = new Timestamp(eventDocSnap.get('date').seconds, eventDocSnap.get('date').nanoseconds);
+            let eventSec = timestamp.seconds;
+            eventSec += eventDocSnap.get('repeat') * 86400;
+            updateDoc(doc(collection(FIREBASE_DB, 'events'), eventEdit.eventID), {
+              date: new Date(eventSec * 1000),
+            })
+          }
+          else{
+            console.log("error, event document not found");
+          }
+        }
+      }
+    })
+    setMarkAttendance(false);
+    fetchData();
+  }
+
+  // TODO: back - add "approved" field to event
+  const handleAddEventSubmit = () => {
+    let eventToAdd = {...eventEdit, date: date};
+    
+    setDoc(doc(collection(FIREBASE_DB, 'events')), eventToAdd);
+
+    setEventEdit({
       layerID: uid,
+      repeat: 0,
     });
     fetchData();
     setAddingEvent(false);
@@ -293,6 +370,15 @@ function EventList({route, navigation}) {
             style={styles.addButton}
             onPress={() => {
               setAddingEvent(true);
+              setEventEdit({
+                layerID: uid,
+                title: '',
+                description: '',
+                location: '',
+                duration: 1,
+                repeat: 0,
+                approved: false,
+              })
             }}
           >
             <Icon
@@ -308,121 +394,175 @@ function EventList({route, navigation}) {
         <Modal visible={addingEvent} animationType="slide">
           {/* TODO: front - improve UI/UX */}
           {/* TODO: front - add errors for input fields */}
-            <KeyboardAwareScrollView>
-          <View style={styles.modalContainer}>
+          <KeyboardAwareScrollView>
+            <View style={styles.container}>
               <Text style={styles.modalTitle}>Add New Event</Text>
-              <View style={styles.modalContent}>
-                <TextInput
-                  onChangeText={(text) =>
-                    setNewEvent({ ...newEvent, title: text })
-                  }
-                  style={styles.modalInput}
-                  placeholderTextColor="#999"
-                  placeholder="Event Title"
-                />
-                <TextInput
-                  onChangeText={(text) =>
-                    setNewEvent({ ...newEvent, description: text })
-                  }
-                  placeholderTextColor="#999"
-                  style={styles.modalInput}
-                  placeholder="Event Description"
-                />
-                <View style={styles.pickedDateContainer}>
-                  <Text style={styles.pickedDate}>{date.toUTCString()}</Text>
-                </View>
+
+              <Text style={styles.label}>Title:</Text>
+              <TextInput
+                style={styles.input}
+                value={eventEdit.title}
+                onChangeText={(text) => setEventEdit({ ...eventEdit, title: text })}
+                placeholder="Enter title"
+              />
+
+              <Text style={styles.label}>Description:</Text>
+              <TextInput
+                style={styles.input}
+                value={eventEdit.description}
+                onChangeText={(text) => setEventEdit({ ...eventEdit, description: text })}
+                placeholder="Enter description"
+              />
+
+              <Text style={styles.label}>Date:</Text>
+              <View style={styles.dateContainer}>
+                <Text style={styles.pickedDate}>{date.toUTCString()}</Text>
+              </View>
+
+              <View style={styles.ChangeDateContainer}>
                 {!isDatePickerShow && (
                   <View style={styles.btnContainer}>
-                    <Button title="Select date" color="purple" onPress={showDatePicker} />
+                    <Button title="Change date" color="purple" onPress={showDatePicker} />
                   </View>
                 )}
 
                 {!isDatePickerShow && (
                   <View style={styles.btnContainer}>
-                    <Button title="Select time" color="purple" onPress={showTimePicker} />
+                    <Button title="Change time" color="purple" onPress={showTimePicker} />
                   </View>
                 )}
-
-                {isDatePickerShow && (
-                  <DateTimePicker
-                    value={date}
-                    mode={'date'}
-                    display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-                    is24Hour={true}
-                    onChange={onChange}
-                    style={styles.datePicker}
-                  />
-                )}
-                {isTimePickerShow && (
-                  <DateTimePicker
-                    value={date}
-                    mode={'time'}
-                    display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-                    is24Hour={true}
-                    onChange={onChange}
-                    style={styles.datePicker}
-                  />
-                )}
-                <TextInput
-                  onChangeText={(text) =>
-                    setNewEvent({ ...newEvent, location: text })
-                  }
-                  placeholderTextColor="#999"
-                  style={styles.modalInput}
-                  placeholder="Event Location"
-                />
-                <TextInput
-                  onChangeText={(text) =>
-                    setNewEvent({ ...newEvent, duration: text })
-                  }
-                  placeholderTextColor="#999"
-                  style={styles.modalInput}
-                  placeholder="Event Hours"
-                />
-                <TextInput
-                  onChangeText={(text) => 
-                    setNewEvent({ ...newEvent, repeat: parseInt(text) })
-                  }
-                  placeholderTextColor="#999"
-                  style={styles.modalInput}
-                  placeholder="repeat event after x days(0 if this is a one time event)"
-                />
               </View>
 
-              <View style={styles.modalButtons}>
-                <Button
-                  title="Cancel"
-                  onPress={() => setAddingEvent(false)}
+              {isDatePickerShow && (
+                <DateTimePicker
+                  value={date}
+                  mode={'date'}
+                  display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                  is24Hour={true}
+                  onChange={onChange}
+                  style={styles.datePicker}
                 />
-                <Button title="Submit" onPress={() => handleAddEventSubmit()} />
-              </View>
-          </View>
-            </KeyboardAwareScrollView>
-        </Modal>
+              )}
+              {isTimePickerShow && (
+                <DateTimePicker
+                  value={date}
+                  mode={'time'}
+                  display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                  is24Hour={true}
+                  onChange={onChange}
+                  style={styles.datePicker}
+                />
+              )}
 
-        {/* <Modal visible={ViewReEventDays} animationType="slide">
-          <View style={styles.modalContainer}>
-            <Text style={styles.modalTitle}>Day List</Text>
-            <View style={styles.dayListContainer}>
-              {days.map(renderDayItem)}
+              <Text style={styles.label}>Location:</Text>
+              <TextInput
+                style={styles.input}
+                value={eventEdit.location}
+                onChangeText={(text) => setEventEdit({ ...eventEdit, location: text })}
+                placeholder="Enter location"
+              />
+
+              <Text style={styles.label}>Duration:</Text>
+              <TextInput
+                style={styles.input}
+                value={eventEdit.duration}
+                onChangeText={(text) => setEventEdit({ ...eventEdit, duration: text })}
+                placeholder="Enter duration"
+                keyboardType="numeric"
+              />
+
+              <Text style={styles.label}>Repeat:</Text>
+              <TextInput
+                style={styles.input}
+                value={eventEdit.repeat}
+                onChangeText={(text) => setEventEdit({ ...eventEdit, repeat: text })}
+                placeholder="Enter repeat"
+                keyboardType="numeric"
+              />
             </View>
+
             <View style={styles.modalButtons}>
               <Button
-                title="Approve"
-                onPress={() => console.log("Approve button pressed")}
-              />
-              <Button
                 title="Cancel"
-                onPress={() => setViewReEventsDays(false)}
+                onPress={() => setAddingEvent(false)}
               />
+              <Button title="Submit" onPress={() => handleAddEventSubmit()} />
             </View>
+          </KeyboardAwareScrollView>
+        </Modal>
+
+        <Modal visible={markAttendance} animationType="slide">
+        <SafeAreaView style={styles.container}>
+          <SectionList
+            sections={students}
+            keyExtractor={(item) => item.uid}
+            renderItem={item => renderStudentItem(item)}
+            renderSectionHeader={({ section: { title } }) => (
+              <Text style={styles.header}>{title}</Text>
+            )}
+          />
+          <View style={styles.buttonContainer}>
+            <Button style={styles.button} title="Approve attendance" onPress={handleApproveAttendance}/>
           </View>
-        </Modal> */}
+        </SafeAreaView>
+        </Modal>
       </View>
     );
 }
 
 const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    padding: 16,
+    backgroundColor: '#fff',
+  },
+  header: {
+    fontSize: 32,
+    backgroundColor: '#fff',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    marginTop: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: '#ccc',
+  },
+  itemContainer: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#ccc',
+  },
+  studentItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 8,
+  },
+  nameText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  checkbox: {
+    width: 20,
+    height: 20,
+    borderRadius: 4,
+    borderWidth: 2,
+    borderColor: '#999',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 10,
+  },
+  checkboxChecked: {
+    backgroundColor: '#4CAF50',
+    borderColor: '#4CAF50',
+  },
+  checkboxIcon: {
+    color: '#fff',
+    fontSize: 14,
+  },
+  scrollView: {
+    backgroundColor: 'pink',
+    marginHorizontal: 20,
+  },
   eventList: {
     flex: 1,
     padding: 16,
@@ -463,7 +603,7 @@ const styles = StyleSheet.create({
   },
   eventLocation: {
     fontSize: 14,
-    color: "#666",
+    marginBottom: 3,
   },
   button: {
     alignItems: "center",
@@ -482,9 +622,10 @@ const styles = StyleSheet.create({
   },
   buttonContainer: {
     flexDirection: "row",
-    justifyContent: "space-between",
+    justifyContent: 'center',
+    alignItems: 'center',
     alignSelf: 'center',
-    width: '80%',
+    width: '100%',
     marginBottom: 20,
   },
   modalContainer: {
@@ -529,7 +670,6 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontWeight: "bold",
   },
-
   line: {
     marginBottom: 20,
     width: "100%",
@@ -540,28 +680,6 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: "bold",
     marginBottom: 16,
-  },
-  dayListContainer: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    justifyContent: "center",
-    alignItems: "center",
-    marginBottom: 16,
-  },
-  dayItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    margin: 8,
-  },
-  checkbox: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    borderWidth: 2,
-    borderColor: "black",
-    justifyContent: "center",
-    alignItems: "center",
-    marginHorizontal: 8,
   },
   approveButton: {
     padding: 10,
@@ -585,9 +703,8 @@ const styles = StyleSheet.create({
     color: 'black',
   },
   btnContainer: {
-    padding: 30,
+    padding: 10,
   },
-  // This only works on iOS
   datePicker: {
     width: 320,
     height: 260,
@@ -595,6 +712,39 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'flex-start',
   },
+  label: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginBottom: 8,
+  },
+  input: {
+    height: 40,
+    borderColor: '#ccc',
+    borderWidth: 1,
+    marginBottom: 16,
+    paddingHorizontal: 8,
+  },
+  dateContainer: {
+    height: 40,
+    borderColor: '#ccc',
+    borderWidth: 1,
+    marginBottom: 16,
+    paddingHorizontal: 8,
+    justifyContent: 'center',
+  },
+  dateText: {
+    fontSize: 16,
+  },
+  datePicker: {
+    marginBottom: 16,
+  },
+  ChangeDateContainer: {
+    display: 'flex',
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignSelf: 'center',
+    marginBottom: 5,
+  }
 });
 
 export default EventList;
