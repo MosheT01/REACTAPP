@@ -418,7 +418,7 @@ function Pdf({ route, navigation }) {
           <Text style={styles.pdfDescription}>{item.description}</Text>
         </View>
 
-        {userType === "schoolManager" && (
+        {userType === "false" && (
         <TouchableOpacity onPress={deletePdf}>
           <Icon name="trash" size={30} color="red" />
         </TouchableOpacity>
