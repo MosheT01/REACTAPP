@@ -4,11 +4,13 @@ import {View,Text,StyleSheet,FlatList,TouchableOpacity,Linking,Modal,TextInput,B
 import { Picker } from '@react-native-picker/picker'; // Updated import statement
 import Icon from "react-native-vector-icons/FontAwesome";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
+import * as DocumentPicker from 'expo-document-picker';
 
 function Pdf({ route, navigation }) {
   const vid = route.params;
   const userID = String(vid); // user id
   const layers = userID.split('.');
+  const [selectedFile, setSelectedFile] = useState(null);
 
  
 
@@ -135,6 +137,23 @@ function Pdf({ route, navigation }) {
     filterPdfList(selectedSchool);
 
   };
+  const handleFileSelection = async () => {
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: Platform.OS === 'ios' ? 'application/pdf' : '/',
+      });
+
+      if (result.type === 'success') {
+        setSelectedFile(result.uri);
+        // Handle the selected file, e.g., upload it to a server
+      } else {
+        setSelectedFile(null);
+        // Handle cancellation or any other error
+      }
+    } catch (error) {
+      console.log('Error picking file:', error);
+    }
+  };
 
   return (
     <View style={styles.container}>
@@ -183,7 +202,12 @@ function Pdf({ route, navigation }) {
               value={pdfDescription}
               onChangeText={(text) => setPdfDescription(text)}
             />
-
+              <View>
+              <Button title="Attach File" onPress={handleFileSelection} />
+              {selectedFile && (
+                <Text>Selected File: {selectedFile.name}</Text>
+              )}
+            </View>
             <TextInput
               style={styles.input}
               placeholder="PDF URL"
