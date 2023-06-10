@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { View, FlatList, TextInput, Text, Modal, StyleSheet, TouchableOpacity, Alert, SafeAreaView, SectionList } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { FIREBASE_DB } from '../../../firebaseConfig';
-import { query, where, collection, getDocs, Timestamp, setDoc, doc, deleteDoc } from 'firebase/firestore';
+import { query, where, collection, getDocs, Timestamp, setDoc, doc, deleteDoc, updateDoc, getDoc } from 'firebase/firestore';
 
 import { Button } from 'react-native-elements';
 import { Ionicons } from "@expo/vector-icons";
@@ -11,23 +11,48 @@ import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view
 
 function EventList({route, navigation}) {
   const uid = route.params;
-  const [loading, setLoading] = useState(true);
-  const [addingEvent, setAddingEvent] = useState(false);
-  const [markAttendance, setMarkAttendance] = useState(false);
-  const [isDatePickerShow, setIsDatePickerShow] = useState(false);
-  const [isTimePickerShow, setIsTimePickerShow] = useState(false);
-  const [date, setDate] = useState();
   const [students, setStudents] = useState([
     {
       title: 'Student List',
       data: []
     }
   ]);
+  const [loading, setLoading] = useState(true);
+  const [addingEvent, setAddingEvent] = useState(false);
+  const [markAttendance, setMarkAttendance] = useState(false);
+  const [isDatePickerShow, setIsDatePickerShow] = useState(false);
+  const [isTimePickerShow, setIsTimePickerShow] = useState(false);
+  const [date, setDate] = useState();
+  // const [students, setStudents] = useState;
   const [events, setEvents] = useState([]);
   const [reEvents, setReEvents] = useState([]);
+  const [isShowDatePicker, isSetShowDatePicker] = useState(false);
   const [eventEdit, setEventEdit] = useState({
     layerID: uid,
+    title: '',
+    description: '',
+    location: '',
+    duration: '',
+    repeat: '',
+    approved: false,
   });
+
+  const options = {
+    timeZone: 'Asia/Jerusalem', // Set the time zone to Israel (Asia/Jerusalem)
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: 'numeric',
+  };
+
+  const handleDatePress = () => {
+    if (Platform.OS === 'android') {
+      showDatePickerAndroid();
+    } else {
+      setShowDatePicker(true);
+    }
+  };
 
     const showDatePicker = () => {
       setIsDatePickerShow(true);
@@ -77,7 +102,7 @@ function EventList({route, navigation}) {
               let eventSec = timestamp.seconds;
               let nowSec = now.getTime() / 1000;
 
-              if (repeat === 0 && nowSec > eventSec + (eventDuration * 3600) + 86400){
+              if ((repeat === 0 && nowSec > eventSec + (eventDuration * 3600) + 86400) || event.get('approved')){
                 console.log("event is at least one day old");
               }
               else{
@@ -88,20 +113,9 @@ function EventList({route, navigation}) {
   
                 let eventDate = new Date(eventSec * 1000);
   
-                let mm = eventDate.getMonth() + 1;
-                let dd = eventDate.getDate();
-                let yyyy = eventDate.getFullYear();
-                let hour = eventDate.getHours() + 3 + ":";
-                if (eventDate.getMinutes() < 10){
-                  hour = hour + "0";
-                }
-                hour = hour + eventDate.getMinutes();
-                const eventDateString = dd + "/" + mm + "/" + yyyy + ", " + hour;
-  
                 const eventObj = {
                   eventID: event.id,
-                  date: eventDateString, 
-                  time: hour,
+                  date: eventDate, 
                   duration: eventDuration,
                   title: event.get('title'),
                   description: event.get('description'),
@@ -149,7 +163,6 @@ function EventList({route, navigation}) {
       );
     }
 
-
     const renderStudentItem = ({ item }) => {
       return (
         <View style={styles.itemContainer}>
@@ -184,7 +197,7 @@ function EventList({route, navigation}) {
             <View style={styles.eventDetails}>
               <Text style={styles.eventTitle}>{item.title}</Text>
               <Text style={styles.eventDescription}>{item.description}</Text>
-              <Text style={styles.eventDate}>{item.date}</Text>
+              <Text style={styles.eventDate}>{item.date.toLocaleString('en-US', options)}</Text>
               <Text style={styles.eventLocation}>{item.location}</Text>
               <Text>hours : {item.duration}</Text>
             </View>
@@ -221,7 +234,7 @@ function EventList({route, navigation}) {
         <View style={styles.eventDetails}>
           <Text style={styles.eventTitle}>{item.title}</Text>
           <Text style={styles.eventDescription}>{item.description}</Text>
-          <Text style={styles.eventDate}>Next Date : {item.date}</Text>
+          <Text style={styles.eventDate}>Next Date : {item.date.toLocaleString('en-US', options)}</Text>
           <Text style={styles.eventDate}>every :{item.repeat} days</Text>
           <Text style={styles.eventLocation}>volunteer at : {item.location} </Text>
           <Text>hours : {item.duration}</Text>
@@ -265,8 +278,7 @@ function EventList({route, navigation}) {
 
   
   const handleMarkAttendance = async (event) => {
-    setMarkAttendance(true);
-    let users = new Array();
+    students.at(0).data = [];
     const getStudentsQ = query(collection(FIREBASE_DB, 'users'), where('manager', '==', uid));
     let querySnapshot = await getDocs(getStudentsQ);
 
@@ -275,28 +287,51 @@ function EventList({route, navigation}) {
     }
     else{
       console.log("found users of this manager");
-      querySnapshot.forEach(user => users.push({uid: user.get('layer'), name: user.get('name'), approved: true}));
-      console.log(users);
-      setStudents(users);
+      querySnapshot.forEach(user => students.at(0).data.push({uid: user.get('layer'), name: user.get('name'), approved: true}));
+
+      console.log(typeof event.date);
       setEventEdit(event);
     }
-    console.log(markAttendance);
+    setMarkAttendance(true);
+    console.log(students);
   };
 
   const handleApproveAttendance = () => {
     console.log("adding hours of event: ", eventEdit);
-    students.forEach((student) => {
+    students.at(0).data.forEach(async (student) => {
       if (student.approved){
-        setDoc(doc(FIREBASE_DB, 'hours', eventEdit.eventID), {
-          VID: student.id,
+        console.log("adding hours to: ", student.name);
+        setDoc(doc(collection(FIREBASE_DB, 'Hours')), {
+          VID: student.uid,
           duration: eventEdit.duration,
           eventID: eventEdit.eventID,
           from: eventEdit.date,
           layer: eventEdit.layerID,
         })
+
+        if (eventEdit.repeat === 0){
+          updateDoc(doc(collection(FIREBASE_DB, 'events'), eventEdit.eventID), {
+            approved: true,
+          })
+        }
+        else{
+          const eventDocSnap = await getDoc(doc(FIREBASE_DB, 'events', eventEdit.eventID));
+          if (eventDocSnap.exists()) {
+            const timestamp = new Timestamp(eventDocSnap.get('date').seconds, eventDocSnap.get('date').nanoseconds);
+            let eventSec = timestamp.seconds;
+            eventSec += eventDocSnap.get('repeat') * 86400;
+            updateDoc(doc(collection(FIREBASE_DB, 'events'), eventEdit.eventID), {
+              date: new Date(eventSec * 1000),
+            })
+          }
+          else{
+            console.log("error, event document not found");
+          }
+        }
       }
     })
-    // setMarkAttendance(false);
+    setMarkAttendance(false);
+    fetchData();
   }
 
   // TODO: back - add "approved" field to event
@@ -304,11 +339,10 @@ function EventList({route, navigation}) {
     let eventToAdd = {...eventEdit, date: date};
     
     setDoc(doc(collection(FIREBASE_DB, 'events')), eventToAdd);
-    const newId = events.length + 1;
-    const newMessageWithId = { ...eventEdit, id: newId };
 
     setEventEdit({
       layerID: uid,
+      repeat: 0,
     });
     fetchData();
     setAddingEvent(false);
@@ -343,6 +377,15 @@ function EventList({route, navigation}) {
             style={styles.addButton}
             onPress={() => {
               setAddingEvent(true);
+              setEventEdit({
+                layerID: uid,
+                title: '',
+                description: '',
+                location: '',
+                duration: 1,
+                repeat: 0,
+                approved: false,
+              })
             }}
           >
             <Icon
@@ -359,93 +402,98 @@ function EventList({route, navigation}) {
           {/* TODO: front - improve UI/UX */}
           {/* TODO: front - add errors for input fields */}
           <KeyboardAwareScrollView>
-            <View style={styles.modalContainer}>
-                <Text style={styles.modalTitle}>Add New Event</Text>
-                <View style={styles.modalContent}>
-                  <TextInput
-                    onChangeText={(text) =>
-                      setEventEdit({ ...eventEdit, title: text })
-                    }
-                    style={styles.modalInput}
-                    placeholderTextColor="#999"
-                    placeholder="Event Title"
-                  />
-                  <TextInput
-                    onChangeText={(text) =>
-                      setEventEdit({ ...eventEdit, description: text })
-                    }
-                    placeholderTextColor="#999"
-                    style={styles.modalInput}
-                    placeholder="Event Description"
-                  />
-                  <View style={styles.pickedDateContainer}>
-                    <Text style={styles.pickedDate}>{date.toUTCString()}</Text>
+            <View style={styles.container}>
+              <Text style={styles.modalTitle}>Add New Event</Text>
+
+              <Text style={styles.label}>Title:</Text>
+              <TextInput
+                style={styles.input}
+                value={eventEdit.title}
+                onChangeText={(text) => setEventEdit({ ...eventEdit, title: text })}
+                placeholder="Enter title"
+              />
+
+              <Text style={styles.label}>Description:</Text>
+              <TextInput
+                style={styles.input}
+                value={eventEdit.description}
+                onChangeText={(text) => setEventEdit({ ...eventEdit, description: text })}
+                placeholder="Enter description"
+              />
+
+              <Text style={styles.label}>Date:</Text>
+              <View style={styles.dateContainer}>
+                <Text style={styles.pickedDate}>{date.toUTCString()}</Text>
+              </View>
+
+              <View style={styles.ChangeDateContainer}>
+                {!isDatePickerShow && (
+                  <View style={styles.btnContainer}>
+                    <Button title="Change date" color="purple" onPress={showDatePicker} />
                   </View>
-                  {!isDatePickerShow && (
-                    <View style={styles.btnContainer}>
-                      <Button title="Select date" color="purple" onPress={showDatePicker} />
-                    </View>
-                  )}
+                )}
 
-                  {!isDatePickerShow && (
-                    <View style={styles.btnContainer}>
-                      <Button title="Select time" color="purple" onPress={showTimePicker} />
-                    </View>
-                  )}
+                {!isDatePickerShow && (
+                  <View style={styles.btnContainer}>
+                    <Button title="Change time" color="purple" onPress={showTimePicker} />
+                  </View>
+                )}
+              </View>
 
-                  {isDatePickerShow && (
-                    <DateTimePicker
-                      value={date}
-                      mode={'date'}
-                      display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-                      is24Hour={true}
-                      onChange={onChange}
-                      style={styles.datePicker}
-                    />
-                  )}
-                  {isTimePickerShow && (
-                    <DateTimePicker
-                      value={date}
-                      mode={'time'}
-                      display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-                      is24Hour={true}
-                      onChange={onChange}
-                      style={styles.datePicker}
-                    />
-                  )}
-                  <TextInput
-                    onChangeText={(text) =>
-                      setEventEdit({ ...eventEdit, location: text })
-                    }
-                    placeholderTextColor="#999"
-                    style={styles.modalInput}
-                    placeholder="Event Location"
-                  />
-                  <TextInput
-                    onChangeText={(text) =>
-                      setEventEdit({ ...eventEdit, duration: text })
-                    }
-                    placeholderTextColor="#999"
-                    style={styles.modalInput}
-                    placeholder="Event Hours"
-                  />
-                  <TextInput
-                    onChangeText={(text) => 
-                      setEventEdit({ ...eventEdit, repeat: parseInt(text) })
-                    }
-                    placeholderTextColor="#999"
-                    style={styles.modalInput}
-                    placeholder="repeat event after x days(0 if this is a one time event)"
-                  />
-                </View>
+              {isDatePickerShow && (
+                <DateTimePicker
+                  value={date}
+                  mode={'date'}
+                  display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                  is24Hour={true}
+                  onChange={onChange}
+                  style={styles.datePicker}
+                />
+              )}
+              {isTimePickerShow && (
+                <DateTimePicker
+                  value={date}
+                  mode={'time'}
+                  display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                  is24Hour={true}
+                  onChange={onChange}
+                  style={styles.datePicker}
+                />
+              )}
 
-                <View style={styles.modalButtons}>
-                  <Button
-                    title="Cancel"
-                    onPress={() => setAddingEvent(false)}
-                  />
-                  <Button title="Submit" onPress={() => handleAddEventSubmit()} />
-                </View>
+              <Text style={styles.label}>Location:</Text>
+              <TextInput
+                style={styles.input}
+                value={eventEdit.location}
+                onChangeText={(text) => setEventEdit({ ...eventEdit, location: text })}
+                placeholder="Enter location"
+              />
+
+              <Text style={styles.label}>Duration:</Text>
+              <TextInput
+                style={styles.input}
+                value={eventEdit.duration}
+                onChangeText={(text) => setEventEdit({ ...eventEdit, duration: text })}
+                placeholder="Enter duration"
+                keyboardType="numeric"
+              />
+
+              <Text style={styles.label}>Repeat:</Text>
+              <TextInput
+                style={styles.input}
+                value={eventEdit.repeat}
+                onChangeText={(text) => setEventEdit({ ...eventEdit, repeat: text })}
+                placeholder="Enter repeat"
+                keyboardType="numeric"
+              />
+            </View>
+
+            <View style={styles.modalButtons}>
+              <Button
+                title="Cancel"
+                onPress={() => setAddingEvent(false)}
+              />
+              <Button title="Submit" onPress={() => handleAddEventSubmit()} />
             </View>
           </KeyboardAwareScrollView>
         </Modal>
@@ -455,7 +503,7 @@ function EventList({route, navigation}) {
           <SectionList
             sections={students}
             keyExtractor={(item) => item.uid}
-            renderItem={renderStudentItem}
+            renderItem={item => renderStudentItem(item)}
             renderSectionHeader={({ section: { title } }) => (
               <Text style={styles.header}>{title}</Text>
             )}
@@ -472,6 +520,7 @@ function EventList({route, navigation}) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    padding: 16,
     backgroundColor: '#fff',
   },
   header: {
@@ -561,7 +610,7 @@ const styles = StyleSheet.create({
   },
   eventLocation: {
     fontSize: 14,
-    color: "#666",
+    marginBottom: 3,
   },
   button: {
     alignItems: "center",
@@ -585,7 +634,6 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     width: '100%',
     marginBottom: 20,
-    // backgroundColor: 'black',
   },
   modalContainer: {
     flex: 1,
@@ -662,7 +710,7 @@ const styles = StyleSheet.create({
     color: 'black',
   },
   btnContainer: {
-    padding: 30,
+    padding: 10,
   },
   datePicker: {
     width: 320,
@@ -671,6 +719,39 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'flex-start',
   },
+  label: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginBottom: 8,
+  },
+  input: {
+    height: 40,
+    borderColor: '#ccc',
+    borderWidth: 1,
+    marginBottom: 16,
+    paddingHorizontal: 8,
+  },
+  dateContainer: {
+    height: 40,
+    borderColor: '#ccc',
+    borderWidth: 1,
+    marginBottom: 16,
+    paddingHorizontal: 8,
+    justifyContent: 'center',
+  },
+  dateText: {
+    fontSize: 16,
+  },
+  datePicker: {
+    marginBottom: 16,
+  },
+  ChangeDateContainer: {
+    display: 'flex',
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignSelf: 'center',
+    marginBottom: 5,
+  }
 });
 
 export default EventList;
