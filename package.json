@@ -10,10 +10,12 @@
   },
   "dependencies": {
     "@react-native-community/datetimepicker": "6.7.3",
+    "@react-native-firebase/storage": "^18.0.0",
     "@react-native-picker/picker": "2.4.8",
     "@react-navigation/native": "^6.1.6",
     "@react-navigation/native-stack": "^6.9.12",
     "expo": "^48.0.19",
+    "expo-document-picker": "~11.2.2",
     "expo-print": "~12.2.1",
     "expo-sharing": "~11.2.2",
     "expo-status-bar": "~1.4.4",
@@ -26,11 +28,11 @@
     "react-native-document-picker": "^9.0.1",
     "react-native-dropdown-picker": "^5.4.6",
     "react-native-elements": "^3.4.3",
+    "react-native-fs": "^2.20.0",
     "react-native-gesture-handler": "~2.9.0",
     "react-native-keyboard-aware-scroll-view": "^0.9.5",
     "react-native-picker": "^4.3.7",
-    "react-navigation": "^4.4.4",
-    "expo-document-picker": "~11.2.2"
+    "react-navigation": "^4.4.4"
   },
   "devDependencies": {
     "@babel/core": "^7.20.0"

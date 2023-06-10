@@ -1,7 +1,13 @@
+import { collection, updateDoc, setDoc, doc, getDoc } from 'firebase/firestore';
+import { createUserWithEmailAndPassword } from 'firebase/auth';
 import React, { useState } from 'react';
 import { View, Text, Alert, FlatList, TouchableOpacity, Modal, TextInput, Button, StyleSheet } from 'react-native';
+import { FIREBASE_DB, FIREBASE_AUTH } from '../../../firebaseConfig';
 
-const ManagersScreen = () => {
+const ManagersScreen = ({route,navigation}) => {
+  const uid = route.params.uid;
+  const counter = route.params.counter;
+  const userDocID = route.params.userDocID;
   const [managers, setManagers] = useState([
     { id: 1, name: 'John Doe', email: 'johndoe@example.com', password: '123456' },
     { id: 2, name: 'Jane Smith', email: 'janesmith@example.com', password: 'abcdef' },
@@ -10,7 +16,7 @@ const ManagersScreen = () => {
   const [newManagerName, setNewManagerName] = useState('');
   const [newManagerEmail, setNewManagerEmail] = useState('');
   const [newManagerPassword, setNewManagerPassword] = useState('');
-
+  
   const handleDeleteManager = (id) => {
     Alert.alert('Confirmation', 'Are you sure you want to delete this manager?', [
       { text: 'Cancel', style: 'cancel' },
@@ -42,13 +48,34 @@ const ManagersScreen = () => {
       email: newManagerEmail.trim(),
       password: newManagerPassword.trim(),
     };
-
+    createUserWithEmailAndPassword(FIREBASE_AUTH, newManager.email, newManager.password)
+    .then(async (userCredential) => {
+      setDoc(doc(collection(FIREBASE_DB, 'users'), userCredential.user.uid), {
+        layer: uid + "." + counter,
+        manager: uid,
+        name: newManager.name,
+      });
+      const docSnap = await getDoc(doc(collection(FIREBASE_DB, 'users'), userDocID));
+      console.log(userCredential.user.email + "  registered successfully!");
+      console.log("new user id: ", userCredential.user.uid);
+      if (docSnap.exists()){
+        updateDoc(doc(collection(FIREBASE_DB,'users'),userDocID),{numberOfUsers: docSnap.get('numberOfUsers') + 1});
+      }
+    })
+    .catch((error) => {
+      // error signing up user
+      const errorCode = error.code;
+      const errorMessage = error.message;
+      console.log("error code: " + errorCode + ": " + errorMessage);
+      Alert.alert('Registration Failed!', 'Error code: ' + errorCode + '\nError message: ' + errorMessage + '\n', [{ text: 'OK' }]);
+    })
     setManagers((prevManagers) => [...prevManagers, newManager]);
     setNewManagerName('');
     setNewManagerEmail('');
     setNewManagerPassword('');
     setModalVisible(false);
   };
+  
 
   const cancelAddManager = () => {
     setNewManagerName('');
@@ -117,7 +144,7 @@ const ManagersScreen = () => {
       </Modal>
     </View>
   );
-};
+  };
 
 const styles = StyleSheet.create({
   container: {
