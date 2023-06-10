@@ -46,14 +46,6 @@ function EventList({route, navigation}) {
     minute: 'numeric',
   };
 
-  const handleDatePress = () => {
-    if (Platform.OS === 'android') {
-      showDatePickerAndroid();
-    } else {
-      setShowDatePicker(true);
-    }
-  };
-
     const showDatePicker = () => {
       setIsDatePickerShow(true);
     };
@@ -80,7 +72,8 @@ function EventList({route, navigation}) {
 
         // building layerID to check for events from any layer(school manager or regional manager)
         const layers = uid.split('.');
-        for (i = layers.length - 1; i <= layers.length; i++){
+        // to only show if SM accepted: for (i = layers.length - 1; i <= layers.length; i++)
+        for (i = 1 ; i <= 3; i++){ // run for all layers
           let layerID = layers[0];
           for (j = 1; j < i; j++){
             layerID += "." + layers[j]; 
