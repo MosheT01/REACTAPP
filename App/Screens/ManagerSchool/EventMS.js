@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, FlatList, TextInput, Text, Modal, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, FlatList, TextInput, Text, Modal, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { FIREBASE_DB } from '../../../firebaseConfig';
 import { query, where, collection, getDocs, Timestamp, setDoc, doc, deleteDoc } from 'firebase/firestore';
@@ -48,7 +48,7 @@ function EventList({route, navigation}) {
 
         // building layerID to check for events from any layer(school manager or regional manager)
         const layers = uid.split('.');
-        for (i = 1; i <= 3; i++){
+        for (i = layers.length - 1; i <= layers.length; i++){
           let layerID = layers[0];
           for (j = 1; j < i; j++){
             layerID += "." + layers[j]; 
@@ -70,44 +70,49 @@ function EventList({route, navigation}) {
               let eventSec = timestamp.seconds;
               let nowSec = now.getTime() / 1000;
 
-              while (nowSec > eventSec + (eventDuration * 3600) && repeat !== 0){
-                eventSec += repeat * 86400;
-                updateEventTime = true;
-              }
-
-              let eventDate = new Date(eventSec * 1000);
-
-              let mm = eventDate.getMonth() + 1;
-              let dd = eventDate.getDate();
-              let yyyy = eventDate.getFullYear();
-              let hour = eventDate.getHours() + 3 + ":";
-              if (eventDate.getMinutes() < 10){
-                hour = hour + "0";
-              }
-              hour = hour + eventDate.getMinutes();
-              const eventDateString = dd + "/" + mm + "/" + yyyy + ", " + hour;
-
-              const eventObj = {
-                eventID: event.id,
-                date: eventDateString, 
-                time: hour,
-                duration: eventDuration,
-                title: event.get('title'),
-                description: event.get('description'),
-                location: event.get('location'),
-                layerID: event.get('layerID'),
-                repeat: repeat,
-              }
-
-              if (repeat === 0){
-                eventsArray.push(eventObj);
+              if (repeat === 0 && nowSec > eventDate + (eventDuration * 3600) + 86400){
+                console.log("event is at least one day old");
               }
               else{
-                reEventsArray.push(eventObj);
-              }
-
-              if (updateEventTime && repeat !== 0){
-                setDoc(doc(collection(FIREBASE_DB, 'events'), event.id), {...eventObj, date: eventDate});
+                while (repeat !== 0 && nowSec > eventSec + (eventDuration * 3600)){
+                  eventSec += repeat * 86400;
+                  updateEventTime = true;
+                }
+  
+                let eventDate = new Date(eventSec * 1000);
+  
+                let mm = eventDate.getMonth() + 1;
+                let dd = eventDate.getDate();
+                let yyyy = eventDate.getFullYear();
+                let hour = eventDate.getHours() + 3 + ":";
+                if (eventDate.getMinutes() < 10){
+                  hour = hour + "0";
+                }
+                hour = hour + eventDate.getMinutes();
+                const eventDateString = dd + "/" + mm + "/" + yyyy + ", " + hour;
+  
+                const eventObj = {
+                  eventID: event.id,
+                  date: eventDateString, 
+                  time: hour,
+                  duration: eventDuration,
+                  title: event.get('title'),
+                  description: event.get('description'),
+                  location: event.get('location'),
+                  layerID: event.get('layerID'),
+                  repeat: repeat,
+                }
+  
+                if (repeat === 0){
+                  eventsArray.push(eventObj);
+                }
+                else{
+                  reEventsArray.push(eventObj);
+                }
+  
+                if (updateEventTime && repeat !== 0){
+                  setDoc(doc(collection(FIREBASE_DB, 'events'), event.id), {...eventObj, date: eventDate});
+                }
               }
 
             });
@@ -238,8 +243,18 @@ function EventList({route, navigation}) {
   
   const handledeleteEvent = (event) => {
     console.log(event);
-    deleteDoc(doc(FIREBASE_DB, 'events', event.eventID));
-    fetchData();
+    Alert.alert('Are you sure you want to delete?', 'deleting an event is a permenant action that cant be reversed', [
+      {
+        text: 'Cancel',
+        onPress: () => console.log('Cancel Pressed'),
+        style: 'cancel',
+      },
+      {text: 'OK', onPress: () => {
+        console.log('OK Pressed');
+        deleteDoc(doc(FIREBASE_DB, 'events', event.eventID));
+        fetchData();
+      }},
+    ]);
   };
 
   
@@ -251,12 +266,10 @@ function EventList({route, navigation}) {
   const handleAddEventSubmit = () => {
     let eventToAdd = {...newEvent, date: date};
     
-    // Create a new message with a unique ID
     setDoc(doc(collection(FIREBASE_DB, 'events')), eventToAdd);
     const newId = events.length + 1;
     const newMessageWithId = { ...newEvent, id: newId };
 
-    // Reset the new message state and close the modal
     setNewEvent({
       layerID: uid,
     });
