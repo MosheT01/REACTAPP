@@ -5,17 +5,17 @@ import { Picker } from '@react-native-picker/picker'; // Updated import statemen
 import Icon from "react-native-vector-icons/FontAwesome";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import * as DocumentPicker from 'expo-document-picker';
+import { FIREBASE_APP, FIREBASE_STORAGE } from "../../../firebaseConfig";
+import { getStorage, ref, getDownloadURL,uploadBytesResumable } from "firebase/storage";
+import { doc } from "firebase/firestore";
 
 function Pdf({ route, navigation }) {
   const vid = route.params;
   const userID = String(vid); // user id
   const layers = userID.split('.');
-  const [selectedFile, setSelectedFile] = useState(null);
-
- 
-
+  const [selectedFile, setSelectedFile] = useState([]);
   const [userType, setUserType] = useState([]);
-
+  const [pdfCatagory,setCatagory] = useState("");
   useEffect(() => {
     if (layers.length === 4) {
       setUserType("volunteer"); // user is volunteer
@@ -38,7 +38,7 @@ function Pdf({ route, navigation }) {
   const [pdfUrl, setPdfUrl] = useState("");
   const [selectedSchool, setSelectedSchool] = useState("");
   const [filteredPdfList, setFilteredPdfList] = useState([]);
-  const schoolList = ["School A", "School B", "School C"];
+  const schoolList = ["גיל הזהב", "חינוך מיוחד", "ילדים"];
 
   // Fetch PDF data from server or local storage
   useEffect(() => {
@@ -46,17 +46,334 @@ function Pdf({ route, navigation }) {
     // Example data:
     const pdfData = [
       {
-        name: "PDF 1",
+        name: "לשאוף ולצמוח",
         description: "description 1",
-        school: "School A",
+        school: "גיל הזהב",
         pdfUrl:
           "https://leoro.org.il/wp-content/uploads/2021/10/%D7%A4%D7%A2%D7%99%D7%9C%D7%95%D7%AA-%D7%9C%D7%92%D7%99%D7%9C-%D7%94%D7%96%D7%94%D7%91-%D7%97%D7%93%D7%A9-1.pdf",
       },
       {
-        name: "PDF 2",
+        name: "הערבות ההדתית",
         description: "description 2",
-        school: "School B",
-        pdfUrl: "https://example.com/pdf2.pdf",
+        school: "גיל הזהב",
+        pdfUrl: "https://leoro.org.il/wp-content/uploads/2021/10/%D7%A4%D7%A2%D7%99%D7%9C%D7%95%D7%AA-%D7%9C%D7%92%D7%99%D7%9C-%D7%94%D7%96%D7%94%D7%91-5.pdf",
+      },
+      {
+        name: "תכונות",
+        description: "description 2",
+        school: "גיל הזהב",
+        pdfUrl: "https://leoro.org.il/wp-content/uploads/2021/10/%D7%A4%D7%A2%D7%99%D7%9C%D7%95%D7%AA-%D7%9C%D7%92%D7%99%D7%9C-%D7%94%D7%96%D7%94%D7%91-5.pdf",
+      },
+      {
+        name: "עין טובה",
+        description: "description 2",
+        school: "גיל הזהב",
+        pdfUrl: "https://leoro.org.il/wp-content/uploads/2021/10/%D7%A4%D7%A2%D7%99%D7%9C%D7%95%D7%AA-%D7%9C%D7%92%D7%99%D7%9C-%D7%94%D7%96%D7%94%D7%91-9.pdf"
+      },
+      {
+        name: "תפילה ואמונה",
+        description: "description 2",
+        school: "גיל הזהב",
+        pdfUrl: "https://leoro.org.il/wp-content/uploads/2021/10/%D7%A4%D7%A2%D7%99%D7%9C%D7%95%D7%AA-%D7%9C%D7%92%D7%99%D7%9C-%D7%94%D7%96%D7%94%D7%91-11.pdf",
+      },
+      {
+        name: "היכן ישנם עוד אנשים כמו האיש ההוא…",
+        description: "description 2",
+        school: "גיל הזהב",
+        pdfUrl: "https://leoro.org.il/wp-content/uploads/2021/11/%D7%A4%D7%A2%D7%99%D7%9C%D7%95%D7%AA-%D7%9C%D7%92%D7%99%D7%9C-%D7%94%D7%96%D7%94%D7%91-%D7%97%D7%93%D7%A9-13-min.pdf",
+      },
+      {
+        name: "רגעים של סיפוק ונחת",
+        description: "description 2",
+        school: "גיל הזהב",
+        pdfUrl: "https://leoro.org.il/wp-content/uploads/2021/11/%D7%A4%D7%A2%D7%99%D7%9C%D7%95%D7%AA-%D7%9C%D7%92%D7%99%D7%9C-%D7%94%D7%96%D7%94%D7%91-%D7%97%D7%93%D7%A9-15-min.pdf",
+      },
+      {
+        name: "שמחה",
+        description: "description 2",
+        school: "גיל הזהב",
+        pdfUrl: "https://leoro.org.il/wp-content/uploads/2021/11/%D7%A4%D7%A2%D7%99%D7%9C%D7%95%D7%AA-%D7%9C%D7%92%D7%99%D7%9C-%D7%94%D7%96%D7%94%D7%91-%D7%97%D7%93%D7%A9-14-min.pdf",
+      },
+      {
+        name: "איזהו עשיר השמח בחלקו",
+        description: "description 2",
+        school: "גיל הזהב",
+        pdfUrl: "https://leoro.org.il/wp-content/uploads/2021/11/%D7%A4%D7%A2%D7%99%D7%9C%D7%95%D7%AA-%D7%9C%D7%92%D7%99%D7%9C-%D7%94%D7%96%D7%94%D7%91-%D7%97%D7%93%D7%A9-16-min.pdf",
+      },
+      {
+        name: "זהות –מי אני?",
+        description: "description 2",
+        school: "גיל הזהב",
+        pdfUrl: "https://leoro.org.il/wp-content/uploads/2021/11/%D7%A4%D7%A2%D7%99%D7%9C%D7%95%D7%AA-%D7%9C%D7%92%D7%99%D7%9C-%D7%94%D7%96%D7%94%D7%91-%D7%97%D7%93%D7%A9-17-min.pdf",
+      },
+      {
+        name: "הכנסת אורחים",
+        description: "description 2",
+        school: "גיל הזהב",
+        pdfUrl: "https://leoro.org.il/wp-content/uploads/2021/11/%D7%A4%D7%A2%D7%99%D7%9C%D7%95%D7%AA-%D7%9C%D7%92%D7%99%D7%9C-%D7%94%D7%96%D7%94%D7%91-%D7%97%D7%93%D7%A9-18-min.pdf",
+      },
+      {
+        name: "שפה ודיבור",
+        description: "description 2",
+        school: "גיל הזהב",
+        pdfUrl: "https://leoro.org.il/wp-content/uploads/2021/11/%D7%A4%D7%A2%D7%99%D7%9C%D7%95%D7%AA-%D7%9C%D7%92%D7%99%D7%9C-%D7%94%D7%96%D7%94%D7%91-%D7%97%D7%93%D7%A9-19-min.pdf",
+      },
+
+      {
+        name: "גורל או בחירה",
+        description: "description 2",
+        school: "גיל הזהב",
+        pdfUrl: "https://leoro.org.il/wp-content/uploads/2021/11/%D7%A4%D7%A2%D7%99%D7%9C%D7%95%D7%AA-%D7%9C%D7%92%D7%99%D7%9C-%D7%94%D7%96%D7%94%D7%91-%D7%97%D7%93%D7%A9-21-min.pdf",
+      },
+
+      {
+        name: "שפה ודיבור",
+        description: "description 2",
+        school: "גיל הזהב",
+        pdfUrl: "https://leoro.org.il/wp-content/uploads/2021/11/%D7%A4%D7%A2%D7%99%D7%9C%D7%95%D7%AA-%D7%9C%D7%92%D7%99%D7%9C-%D7%94%D7%96%D7%94%D7%91-%D7%97%D7%93%D7%A9-33-min.pdf",
+      },
+
+      {
+        name: "דברי חכמים בנחת נשמעים",
+        description: "description 2",
+        school: "גיל הזהב",
+        pdfUrl: "https://leoro.org.il/wp-content/uploads/2021/11/%D7%A4%D7%A2%D7%99%D7%9C%D7%95%D7%AA-%D7%9C%D7%92%D7%99%D7%9C-%D7%94%D7%96%D7%94%D7%91-%D7%97%D7%93%D7%A9-19-min.pdf",
+      },
+
+      {
+        name: "תחשוב טוב יהיה טוב",
+        description: "description 2",
+        school: "גיל הזהב",
+        pdfUrl: "https://leoro.org.il/wp-content/uploads/2021/11/%D7%A4%D7%A2%D7%99%D7%9C%D7%95%D7%AA-%D7%9C%D7%92%D7%99%D7%9C-%D7%94%D7%96%D7%94%D7%91-%D7%97%D7%93%D7%A9-35-min.pdf",
+      },
+
+      {
+        name: "לחנוכה",
+        description: "description 2",
+        school: "גיל הזהב",
+        pdfUrl: "https://leoro.org.il/wp-content/uploads/2021/11/%D7%A4%D7%A2%D7%99%D7%9C%D7%95%D7%AA-%D7%9C%D7%92%D7%99%D7%9C-%D7%94%D7%96%D7%94%D7%91-%D7%97%D7%93%D7%A9-%D7%98%D7%95-%D7%91%D7%A9%D7%91%D7%98-min.pdf",
+      },
+
+      {
+        name: "טו בשבט",
+        description: "description 2",
+        school: "גיל הזהב",
+        pdfUrl: "https://leoro.org.il/wp-content/uploads/2021/11/%D7%A4%D7%A2%D7%99%D7%9C%D7%95%D7%AA-%D7%9C%D7%92%D7%99%D7%9C-%D7%94%D7%96%D7%94%D7%91-%D7%97%D7%93%D7%A9-%D7%97%D7%A0%D7%95%D7%9B%D7%94-min.pdf",
+      },
+      {
+        name: "יצירת קשר",
+        description: "description 2",
+        school: "חינוך מיוחד",
+        pdfUrl: "https://leoro.org.il/wp-content/uploads/2021/10/%D7%A4%D7%A2%D7%99%D7%9C%D7%95%D7%AA-%D7%9C%D7%97%D7%99%D7%A0%D7%95%D7%9A-%D7%9E%D7%99%D7%95%D7%97%D7%93-1.pdf",
+      },
+      {
+        name: "יצירת קשר",
+        description: "description 2",
+        school: "חינוך מיוחד",
+        pdfUrl: "https://leoro.org.il/wp-content/uploads/2021/10/%D7%A4%D7%A2%D7%99%D7%9C%D7%95%D7%AA-%D7%9C%D7%97%D7%99%D7%A0%D7%95%D7%9A-%D7%9E%D7%99%D7%95%D7%97%D7%93-1.pdf",
+      },
+      {
+        name: "יצירת קשר 2",
+        description: "description 2",
+        school: "חינוך מיוחד",
+        pdfUrl: "https://leoro.org.il/wp-content/uploads/2021/10/%D7%A4%D7%A2%D7%99%D7%9C%D7%95%D7%AA-%D7%9C%D7%97%D7%99%D7%A0%D7%95%D7%9A-%D7%9E%D7%99%D7%95%D7%97%D7%93-2.pdf",
+      },
+      {
+        name: "יצירת קשר 3",
+        description: "description 2",
+        school: "חינוך מיוחד",
+        pdfUrl: "https://leoro.org.il/wp-content/uploads/2021/10/%D7%A4%D7%A2%D7%99%D7%9C%D7%95%D7%AA-%D7%9C%D7%97%D7%99%D7%A0%D7%95%D7%9A-%D7%9E%D7%99%D7%95%D7%97%D7%93-3.pdf",
+      },
+      {
+        name: "החברות 1",
+        description: "description 2",
+        school: "חינוך מיוחד",
+        pdfUrl: "https://leoro.org.il/wp-content/uploads/2021/10/%D7%A4%D7%A2%D7%99%D7%9C%D7%95%D7%AA-%D7%9C%D7%97%D7%99%D7%A0%D7%95%D7%9A-%D7%9E%D7%99%D7%95%D7%97%D7%93-4.pdf",
+      },
+      {
+        name: "החברות 2",
+        description: "description 2",
+        school: "חינוך מיוחד",
+        pdfUrl: "https://leoro.org.il/wp-content/uploads/2021/10/%D7%A4%D7%A2%D7%99%D7%9C%D7%95%D7%AA-%D7%9C%D7%97%D7%99%D7%A0%D7%95%D7%9A-%D7%9E%D7%99%D7%95%D7%97%D7%93-5.pdf",
+      },
+      {
+        name: "החברות 3",
+        description: "description 2",
+        school: "חינוך מיוחד",
+        pdfUrl: "https://leoro.org.il/wp-content/uploads/2021/10/%D7%A4%D7%A2%D7%99%D7%9C%D7%95%D7%AA-%D7%9C%D7%97%D7%99%D7%A0%D7%95%D7%9A-%D7%9E%D7%99%D7%95%D7%97%D7%93-6.pdf",
+      },
+      {
+        name: "הצדקה",
+        description: "description 2",
+        school: "חינוך מיוחד",
+        pdfUrl: "https://leoro.org.il/wp-content/uploads/2021/10/%D7%A4%D7%A2%D7%99%D7%9C%D7%95%D7%AA-%D7%9C%D7%97%D7%99%D7%A0%D7%95%D7%9A-%D7%9E%D7%99%D7%95%D7%97%D7%93-7.pdf",
+      },
+      {
+        name: "מודעות עצמית",
+        description: "description 2",
+        school: "חינוך מיוחד",
+        pdfUrl: "https://leoro.org.il/wp-content/uploads/2021/10/%D7%A4%D7%A2%D7%99%D7%9C%D7%95%D7%AA-%D7%9C%D7%97%D7%99%D7%A0%D7%95%D7%9A-%D7%9E%D7%99%D7%95%D7%97%D7%93-8.pdf",
+      },
+
+      {
+        name: " המשפחה שלי",
+        description: "description 2",
+        school: "חינוך מיוחד",
+        pdfUrl: "https://leoro.org.il/wp-content/uploads/2021/10/%D7%A4%D7%A2%D7%99%D7%9C%D7%95%D7%AA-%D7%9C%D7%97%D7%99%D7%A0%D7%95%D7%9A-%D7%9E%D7%99%D7%95%D7%97%D7%93-9.pdf",
+      },
+
+      {
+        name: "עין טובה",
+        description: "description 2",
+        school: "חינוך מיוחד",
+        pdfUrl: "https://leoro.org.il/wp-content/uploads/2021/10/%D7%A4%D7%A2%D7%99%D7%9C%D7%95%D7%AA-%D7%9C%D7%97%D7%99%D7%A0%D7%95%D7%9A-%D7%9E%D7%99%D7%95%D7%97%D7%93-10.pdf",
+      },
+
+      {
+        name: "חמשת החושים 1",
+        description: "description 2",
+        school: "חינוך מיוחד",
+        pdfUrl: "https://leoro.org.il/wp-content/uploads/2021/10/%D7%A4%D7%A2%D7%99%D7%9C%D7%95%D7%AA-%D7%9C%D7%97%D7%99%D7%A0%D7%95%D7%9A-%D7%9E%D7%99%D7%95%D7%97%D7%93-11.pdf",
+      },
+
+      {
+        name: "חמשת החושים 2",
+        description: "description 2",
+        school: "חינוך מיוחד",
+        pdfUrl: "https://leoro.org.il/wp-content/uploads/2021/10/%D7%A4%D7%A2%D7%99%D7%9C%D7%95%D7%AA-%D7%9C%D7%97%D7%99%D7%A0%D7%95%D7%9A-%D7%9E%D7%99%D7%95%D7%97%D7%93-12.pdf",
+      },
+
+      {
+        name: "חמשת החושים 3",
+        description: "description 2",
+        school: "חינוך מיוחד",
+        pdfUrl: "https://leoro.org.il/wp-content/uploads/2021/10/%D7%A4%D7%A2%D7%99%D7%9C%D7%95%D7%AA-%D7%9C%D7%97%D7%99%D7%A0%D7%95%D7%9A-%D7%9E%D7%99%D7%95%D7%97%D7%93-13.pdf",
+      },
+
+      {
+        name: "חמשת החושים 4",
+        description: "description 2",
+        school: "חינוך מיוחד",
+        pdfUrl: "https://leoro.org.il/wp-content/uploads/2021/10/%D7%A4%D7%A2%D7%99%D7%9C%D7%95%D7%AA-%D7%9C%D7%97%D7%99%D7%A0%D7%95%D7%9A-%D7%9E%D7%99%D7%95%D7%97%D7%93-14.pdf",
+      },
+
+      {
+        name: "חמשת החושים 5",
+        description: "description 2",
+        school: "חינוך מיוחד",
+        pdfUrl: "https://leoro.org.il/wp-content/uploads/2021/10/%D7%A4%D7%A2%D7%99%D7%9C%D7%95%D7%AA-%D7%9C%D7%97%D7%99%D7%A0%D7%95%D7%9A-%D7%9E%D7%99%D7%95%D7%97%D7%93-15.pdf",
+      },
+
+      {
+        name: "השמחה",
+        description: "description 2",
+        school: "חינוך מיוחד",
+        pdfUrl: "https://leoro.org.il/wp-content/uploads/2021/10/%D7%A4%D7%A2%D7%99%D7%9C%D7%95%D7%AA-%D7%9C%D7%97%D7%99%D7%A0%D7%95%D7%9A-%D7%9E%D7%99%D7%95%D7%97%D7%93-16.pdf",
+      },
+
+      {
+        name: "ביקור חולים",
+        description: "description 2",
+        school: "חינוך מיוחד",
+        pdfUrl: "https://leoro.org.il/wp-content/uploads/2021/10/%D7%A4%D7%A2%D7%99%D7%9C%D7%95%D7%AA-%D7%9C%D7%97%D7%99%D7%A0%D7%95%D7%9A-%D7%9E%D7%99%D7%95%D7%97%D7%93-17.pdf",
+      },
+
+      {
+        name: "הכנסת אורחים",
+        description: "description 2",
+        school: "חינוך מיוחד",
+        pdfUrl: "https://leoro.org.il/wp-content/uploads/2021/10/%D7%A4%D7%A2%D7%99%D7%9C%D7%95%D7%AA-%D7%9C%D7%97%D7%99%D7%A0%D7%95%D7%9A-%D7%9E%D7%99%D7%95%D7%97%D7%93-18.pdf",
+      },
+      {
+        name: "שפה ודיבור",
+        description: "description 2",
+        school: "חינוך מיוחד",
+        pdfUrl: "https://leoro.org.il/wp-content/uploads/2021/10/%D7%A4%D7%A2%D7%99%D7%9C%D7%95%D7%AA-%D7%9C%D7%97%D7%99%D7%A0%D7%95%D7%9A-%D7%9E%D7%99%D7%95%D7%97%D7%93-19.pdf",
+      },
+      {
+        name: "צף ושוקע",
+        description: "description 2",
+        school: "חינוך מיוחד",
+        pdfUrl: "https://leoro.org.il/wp-content/uploads/2021/10/%D7%A4%D7%A2%D7%99%D7%9C%D7%95%D7%AA-%D7%9C%D7%97%D7%99%D7%A0%D7%95%D7%9A-%D7%9E%D7%99%D7%95%D7%97%D7%93-20.pdf",
+      },
+
+      {
+        name: "יצירת קשר",
+        description: "description 2",
+        school: "ילדים",
+        pdfUrl: "https://leoro.org.il/wp-content/uploads/2021/10/%D7%A4%D7%A2%D7%99%D7%9C%D7%95%D7%AA-%D7%9C%D7%99%D7%9C%D7%93%D7%99%D7%9D-1.pdf",
+      },
+
+      {
+        name: "ניהול קונפליקטים 1",
+        description: "description 2",
+        school: "ילדים",
+        pdfUrl: "https://leoro.org.il/wp-content/uploads/2021/10/%D7%A4%D7%A2%D7%99%D7%9C%D7%95%D7%AA-%D7%9C%D7%99%D7%9C%D7%93%D7%99%D7%9D-2.pdf",
+      },
+
+      {
+        name: "ניהול קונפליקטים 2",
+        description: "description 2",
+        school: "ילדים",
+        pdfUrl: "https://leoro.org.il/wp-content/uploads/2021/10/%D7%A4%D7%A2%D7%99%D7%9C%D7%95%D7%AA-%D7%9C%D7%99%D7%9C%D7%93%D7%99%D7%9D-3.pdf",
+      },
+
+      {
+        name: "ניהול קונפליקטים 3",
+        description: "description 2",
+        school: "ילדים",
+        pdfUrl: "https://leoro.org.il/wp-content/uploads/2021/10/%D7%A4%D7%A2%D7%99%D7%9C%D7%95%D7%AA-%D7%9C%D7%99%D7%9C%D7%93%D7%99%D7%9D-4.pdf",
+      },
+      {
+        name: "החברות",
+        description: "description 2",
+        school: "ילדים",
+        pdfUrl: "https://leoro.org.il/wp-content/uploads/2021/10/%D7%A4%D7%A2%D7%99%D7%9C%D7%95%D7%AA-%D7%9C%D7%99%D7%9C%D7%93%D7%99%D7%9D-5.pdf",
+      },
+
+      {
+        name: "מה נעשה עם הזמן הפנוי שלנו?",
+        description: "description 2",
+        school: "ילדים",
+        pdfUrl: "https://leoro.org.il/wp-content/uploads/2021/10/%D7%A4%D7%A2%D7%99%D7%9C%D7%95%D7%AA-%D7%9C%D7%99%D7%9C%D7%93%D7%99%D7%9D-6.pdf",
+      },
+
+      {
+        name:"הצדקה",
+        description: "description 2",
+        school: "ילדים",
+        pdfUrl: "https://leoro.org.il/wp-content/uploads/2021/10/%D7%A4%D7%A2%D7%99%D7%9C%D7%95%D7%AA-%D7%9C%D7%99%D7%9C%D7%93%D7%99%D7%9D-7.pdf",
+      },
+
+      {
+        name:"מודעות לאחר",
+        description: "description 2",
+        school: "ילדים",
+        pdfUrl: "https://leoro.org.il/wp-content/uploads/2021/10/%D7%A4%D7%A2%D7%99%D7%9C%D7%95%D7%AA-%D7%9C%D7%99%D7%9C%D7%93%D7%99%D7%9D-8.pdf",
+      },
+      {
+        name:"המשפחה שלי",
+        description: "description 2",
+        school: "ילדים",
+        pdfUrl: "https://leoro.org.il/wp-content/uploads/2021/10/%D7%A4%D7%A2%D7%99%D7%9C%D7%95%D7%AA-%D7%9C%D7%99%D7%9C%D7%93%D7%99%D7%9D-9.pdf",
+      },
+      {
+        name:"עין טובה",
+        description: "description 2",
+        school: "ילדים",
+        pdfUrl: "https://leoro.org.il/wp-content/uploads/2021/10/%D7%A4%D7%A2%D7%99%D7%9C%D7%95%D7%AA-%D7%9C%D7%99%D7%9C%D7%93%D7%99%D7%9D-10.pdf",
+      },
+      {
+        name:"מחשבה טובה – אמונה",
+        description: "description 2",
+        school: "ילדים",
+        pdfUrl: "https://leoro.org.il/wp-content/uploads/2021/10/%D7%A4%D7%A2%D7%99%D7%9C%D7%95%D7%AA-%D7%9C%D7%99%D7%9C%D7%93%D7%99%D7%9D-11.pdf",
+      },
+      {
+        name:"האחר הוא – אני",
+        description: "description 2",
+        school: "ילדים",
+        pdfUrl: "https://leoro.org.il/wp-content/uploads/2021/10/%D7%A4%D7%A2%D7%99%D7%9C%D7%95%D7%AA-%D7%9C%D7%99%D7%9C%D7%93%D7%99%D7%9D-12.pdf",
       },
       // ...rest of the PDF data
     ];
@@ -101,7 +418,7 @@ function Pdf({ route, navigation }) {
           <Text style={styles.pdfDescription}>{item.description}</Text>
         </View>
 
-        {userType === "schoolManager" && (
+        {userType === "false" && (
         <TouchableOpacity onPress={deletePdf}>
           <Icon name="trash" size={30} color="red" />
         </TouchableOpacity>
@@ -117,12 +434,30 @@ function Pdf({ route, navigation }) {
       alert("Please fill in all fields");
       return;
     }
+    const storage = getStorage();
+    const mountainsRef = ref(storage,'pdfs/'+pdfCatagory+"/"+pdfName);
 
-    // Create a new PDF object
+    // const metadata = {
+    //   contentType: 'application/pdf',
+    // };
+    console.log(selectedFile);
+    // Upload the file and metadata
+    uploadBytesResumable(mountainsRef, selectedFile).then((snapshot) => {
+      console.log("File uploaded successfully");
+      // Handle successful upload
+    })
+    .catch((error) => {
+      console.error("Error uploading file", error);
+      // Handle error
+    });;
+    
+    // const new_url_ref = PutFile(mountainsRef)
+
+    //Create a new PDF object
     const newPdf = {
       name: pdfName,
       description: pdfDescription,
-      pdfUrl: pdfUrl,
+      pdfUrl: selectedFile,
       school: selectedSchool,
     };
 
@@ -144,7 +479,10 @@ function Pdf({ route, navigation }) {
       });
 
       if (result.type === 'success') {
-        setSelectedFile(result.uri);
+        const r = result.file;
+        // const b = await r.blob();
+        setSelectedFile(r);
+        //setIsChoosed(true) 
         // Handle the selected file, e.g., upload it to a server
       } else {
         setSelectedFile(null);
@@ -158,7 +496,7 @@ function Pdf({ route, navigation }) {
   return (
     <View style={styles.container}>
        {/* Filter section */}
-    {userType === "schoolManager" && (
+    {true && (
       <Picker
         selectedValue={selectedSchool}
         onValueChange={(itemValue) => {
@@ -167,7 +505,7 @@ function Pdf({ route, navigation }) {
         }}
         style={styles.filterPicker}
       >
-        <Picker.Item label="All Schools" value="" />
+        <Picker.Item label="All PDFs" value="" />
         {schoolList.map((school) => (
           <Picker.Item label={school} value={school} key={school} />
         ))}
@@ -205,7 +543,7 @@ function Pdf({ route, navigation }) {
               <View>
               <Button title="Attach File" onPress={handleFileSelection} />
               {selectedFile && (
-                <Text>Selected File: {selectedFile.name}</Text>
+                <Text>Selected File: {selectedFile}</Text>
               )}
             </View>
             <TextInput
@@ -214,6 +552,14 @@ function Pdf({ route, navigation }) {
               placeholderTextColor="#999"
               value={pdfUrl}
               onChangeText={(text) => setPdfUrl(text)}
+            />
+
+            <TextInput
+              style={styles.input}
+              placeholder="pdfCatagory"
+              placeholderTextColor="#999"
+              value={pdfCatagory}
+              onChangeText={(text) => setCatagory(text)}
             />
             <View style={styles.modalButtons}>
               <Button title="Add" onPress={addPdf} />
