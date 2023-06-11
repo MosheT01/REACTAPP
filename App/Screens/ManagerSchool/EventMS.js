@@ -23,7 +23,6 @@ function EventList({route, navigation}) {
   const [isDatePickerShow, setIsDatePickerShow] = useState(false);
   const [isTimePickerShow, setIsTimePickerShow] = useState(false);
   const [date, setDate] = useState();
-  // const [students, setStudents] = useState;
   const [events, setEvents] = useState([]);
   const [reEvents, setReEvents] = useState([]);
   const [isShowDatePicker, isSetShowDatePicker] = useState(false);
@@ -32,8 +31,8 @@ function EventList({route, navigation}) {
     title: '',
     description: '',
     location: '',
-    duration: '',
-    repeat: '',
+    duration: '0',
+    repeat: '0',
     approved: false,
   });
 
@@ -96,7 +95,7 @@ function EventList({route, navigation}) {
               let nowSec = now.getTime() / 1000;
 
               if ((repeat === 0 && nowSec > eventSec + (eventDuration * 3600) + 86400) || event.get('approved')){
-                console.log("event is at least one day old");
+                console.log("event irrelevent");
               }
               else{
                 while (repeat !== 0 && nowSec > eventSec + (eventDuration * 3600)){
@@ -109,12 +108,12 @@ function EventList({route, navigation}) {
                 const eventObj = {
                   eventID: event.id,
                   date: eventDate, 
-                  duration: eventDuration,
+                  duration: String(eventDuration),
                   title: event.get('title'),
                   description: event.get('description'),
                   location: event.get('location'),
                   layerID: event.get('layerID'),
-                  repeat: repeat,
+                  repeat: String(repeat),
                 }
   
                 if (repeat === 0){
@@ -204,9 +203,7 @@ function EventList({route, navigation}) {
 
               <TouchableOpacity
                 style={styles.button}
-                onPress={() => {
-                  handleMarkAttendance(item);
-                }}
+                onPress={() => handleMarkAttendance(item)}
               >
                 <Icon name="check" size={24} color="green" />
               </TouchableOpacity>
@@ -242,10 +239,7 @@ function EventList({route, navigation}) {
 
           <TouchableOpacity
             style={styles.button}
-            onPress={() => {
-              handleMarkAttendance(item);
-            }}
-          >
+            onPress={() => handleMarkAttendance(item)}>
             <Icon name="check" size={24} color="green" />
           </TouchableOpacity>
         </View>
@@ -254,6 +248,12 @@ function EventList({route, navigation}) {
   };
   
   const handledeleteEvent = (event) => {
+    if (event.layerID !== uid){
+      Alert.alert('Error', 'this is not your event, you can not delete it', [
+        {text: 'OK', onPress: () => console.log("OK pressed. user has been warned he cant delete this event")}
+      ]);
+    }
+    else
     console.log(event);
     Alert.alert('Are you sure you want to delete?', 'deleting an event is a permenant action that cant be reversed', [
       {
@@ -296,18 +296,18 @@ function EventList({route, navigation}) {
         console.log("adding hours to: ", student.name);
         setDoc(doc(collection(FIREBASE_DB, 'Hours')), {
           VID: student.uid,
-          duration: eventEdit.duration,
+          duration: Number(eventEdit.duration),
           eventID: eventEdit.eventID,
           from: eventEdit.date,
           layer: eventEdit.layerID,
         })
 
-        if (eventEdit.repeat === 0){
-          updateDoc(doc(collection(FIREBASE_DB, 'events'), eventEdit.eventID), {
-            approved: true,
-          })
+        if (eventEdit.repeat == 0){
+          console.log("updating event to be approved");
+          updateDoc(doc(collection(FIREBASE_DB, 'events'), eventEdit.eventID), {approved: true})
         }
         else{
+          console.log("updating next accurance of event");
           const eventDocSnap = await getDoc(doc(FIREBASE_DB, 'events', eventEdit.eventID));
           if (eventDocSnap.exists()) {
             const timestamp = new Timestamp(eventDocSnap.get('date').seconds, eventDocSnap.get('date').nanoseconds);
@@ -329,13 +329,18 @@ function EventList({route, navigation}) {
 
   // TODO: back - add "approved" field to event
   const handleAddEventSubmit = () => {
-    let eventToAdd = {...eventEdit, date: date};
+    let eventToAdd = {...eventEdit, date: date, repeat: Number(eventEdit.repeat), duration: Number(eventEdit.duration)};
     
     setDoc(doc(collection(FIREBASE_DB, 'events')), eventToAdd);
 
     setEventEdit({
       layerID: uid,
-      repeat: 0,
+      title: '',
+      description: '',
+      location: '',
+      duration: '0',
+      repeat: '0',
+      approved: false,
     });
     fetchData();
     setAddingEvent(false);
@@ -375,8 +380,8 @@ function EventList({route, navigation}) {
                 title: '',
                 description: '',
                 location: '',
-                duration: 1,
-                repeat: 0,
+                duration: '0',
+                repeat: '0',
                 approved: false,
               })
             }}
