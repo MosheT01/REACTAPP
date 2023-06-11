@@ -18,8 +18,9 @@ function EventList({route, navigation}) {
     }
   ]);
   const [loading, setLoading] = useState(true);
-  const [addingEvent, setAddingEvent] = useState(false);
+  const [eventDetails, setEventDetails] = useState(false);
   const [markAttendance, setMarkAttendance] = useState(false);
+  const [isEditingEvent, setIsEditingEvent] = useState(false);
   const [isDatePickerShow, setIsDatePickerShow] = useState(false);
   const [isTimePickerShow, setIsTimePickerShow] = useState(false);
   const [date, setDate] = useState();
@@ -114,7 +115,7 @@ function EventList({route, navigation}) {
                   layerID: event.get('layerID'),
                   repeat: String(repeat),
                 }
-  
+
                 if (repeat === 0){
                   eventsArray.push(eventObj);
                 }
@@ -191,19 +192,18 @@ function EventList({route, navigation}) {
               <Text>hours : {item.duration}</Text>
             </View>
             <View>
-              <TouchableOpacity
-                style={styles.button}
-                onPress={() => handledeleteEvent(item)}
-              >
-                <Ionicons name="trash-outline" size={24} color="#333" />
-              </TouchableOpacity>
 
-              <TouchableOpacity
-                style={styles.button}
-                onPress={() => handleMarkAttendance(item)}
-              >
-                <Icon name="check" size={24} color="green" />
-              </TouchableOpacity>
+            <TouchableOpacity style={styles.button} onPress={() => handleEditEvent(item)}>
+              <Ionicons name="pencil-outline" size={24} color="#333" />
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.button} onPress={() => handledeleteEvent(item)}>
+              <Ionicons name="trash-outline" size={24} color="#333" />
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.button} onPress={() => handleMarkAttendance(item)}>
+              <Icon name="check" size={24} color="green"/>
+            </TouchableOpacity>
             </View>
           </View>
         );
@@ -227,16 +227,16 @@ function EventList({route, navigation}) {
           <Text>hours : {item.duration}</Text>
         </View>
         <View>
-          <TouchableOpacity
-            style={styles.button}
-            onPress={() => handledeleteEvent(item)}
-          >
+
+          <TouchableOpacity style={styles.button} onPress={() => handleEditEvent(item)}>
+            <Ionicons name="pencil-outline" size={24} color="#333" />
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.button} onPress={() => handledeleteEvent(item)}>
             <Ionicons name="trash-outline" size={24} color="#333" />
           </TouchableOpacity>
 
-          <TouchableOpacity
-            style={styles.button}
-            onPress={() => handleMarkAttendance(item)}>
+          <TouchableOpacity style={styles.button} onPress={() => handleMarkAttendance(item)}>
             <Icon name="check" size={24} color="green" />
           </TouchableOpacity>
         </View>
@@ -265,6 +265,16 @@ function EventList({route, navigation}) {
       }},
     ]);
   };
+
+  const handleEditEvent = (event) => {
+    console.log("editing event: ", event);
+    setEventEdit({...event});
+    console.log(eventEdit);
+    setDate(event.date);
+    console.log(date);
+    setIsEditingEvent(true);
+    setEventDetails(true);
+  }
 
   
   const handleMarkAttendance = async (event) => {
@@ -324,11 +334,18 @@ function EventList({route, navigation}) {
     fetchData();
   }
 
-  // TODO: back - add "approved" field to event
-  const handleAddEventSubmit = () => {
+  const handleFinishEditEvent = () => {
     let eventToAdd = {...eventEdit, date: date, repeat: Number(eventEdit.repeat), duration: Number(eventEdit.duration)};
-    
-    setDoc(doc(collection(FIREBASE_DB, 'events')), eventToAdd);
+
+    if (isEditingEvent){
+      const eventID = eventEdit.eventID;
+      delete eventToAdd.eventID;
+      console.log("updating event with ID ", eventID);
+      console.log("event: ", eventToAdd);
+      updateDoc(doc(collection(FIREBASE_DB, 'events'), eventID), eventToAdd);
+    }else{
+      setDoc(doc(collection(FIREBASE_DB, 'events')), eventToAdd);
+    }
 
     setEventEdit({
       layerID: uid,
@@ -340,7 +357,8 @@ function EventList({route, navigation}) {
       approved: false,
     });
     fetchData();
-    setAddingEvent(false);
+    setEventDetails(false);
+    setIsEditingEvent(false);
   };
   
 
@@ -371,7 +389,7 @@ function EventList({route, navigation}) {
           <TouchableOpacity
             style={styles.addButton}
             onPress={() => {
-              setAddingEvent(true);
+              setEventDetails(true);
               setEventEdit({
                 layerID: uid,
                 title: '',
@@ -393,12 +411,12 @@ function EventList({route, navigation}) {
           </TouchableOpacity>
         </View>
 
-        <Modal visible={addingEvent} animationType="slide">
+        <Modal visible={eventDetails} animationType="slide">
           {/* TODO: front - improve UI/UX */}
           {/* TODO: front - add errors for input fields */}
           <KeyboardAwareScrollView>
             <View style={styles.container}>
-              <Text style={styles.modalTitle}>Add New Event</Text>
+              {isEditingEvent? <Text style={styles.modalTitle}>edit Event Details</Text>: <Text style={styles.modalTitle}>Add New Event</Text>}
 
               <Text style={styles.label}>Title:</Text>
               <TextInput
@@ -418,7 +436,7 @@ function EventList({route, navigation}) {
 
               <Text style={styles.label}>Date:</Text>
               <View style={styles.dateContainer}>
-                <Text style={styles.pickedDate}>{date.toUTCString()}</Text>
+                <Text style={styles.pickedDate}>{date.toLocaleString('en-US', options)}</Text>
               </View>
 
               <View style={styles.ChangeDateContainer}>
@@ -445,6 +463,7 @@ function EventList({route, navigation}) {
                   style={styles.datePicker}
                 />
               )}
+              {/* TODO - front: fix Bug - display local string of event in editing event */}
               {isTimePickerShow && (
                 <DateTimePicker
                   value={date}
@@ -486,9 +505,9 @@ function EventList({route, navigation}) {
             <View style={styles.modalButtons}>
               <Button
                 title="Cancel"
-                onPress={() => setAddingEvent(false)}
+                onPress={() => setEventDetails(false)}
               />
-              <Button title="Submit" onPress={() => handleAddEventSubmit()} />
+              <Button title="Submit" onPress={() => handleFinishEditEvent()} />
             </View>
           </KeyboardAwareScrollView>
         </Modal>
