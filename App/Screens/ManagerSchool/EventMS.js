@@ -25,7 +25,6 @@ function EventList({route, navigation}) {
   const [date, setDate] = useState();
   const [events, setEvents] = useState([]);
   const [reEvents, setReEvents] = useState([]);
-  const [isShowDatePicker, isSetShowDatePicker] = useState(false);
   const [eventEdit, setEventEdit] = useState({
     layerID: uid,
     title: '',
@@ -138,13 +137,11 @@ function EventList({route, navigation}) {
       } catch (error) {
         console.log("Error fetching events data: ", error);
       }
-      finally{
-        setLoading(false);
-      }
     };
 
     useEffect(() => {
       fetchData();
+      setLoading(false);
     }, []);
 
     if (loading) {
