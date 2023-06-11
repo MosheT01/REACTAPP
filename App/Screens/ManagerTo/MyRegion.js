@@ -6,7 +6,7 @@ import { FIREBASE_DB, FIREBASE_AUTH } from '../../../firebaseConfig';
 
 const ManagersScreen = ({route,navigation}) => {
   const uid = route.params.uid;
-  const counter = route.params.counter;
+  const [counter,setCounter] = useState(route.params.counter);
   const userDocID = route.params.userDocID;
   const [managers, setManagers] = useState([
     { id: 1, name: 'John Doe', email: 'johndoe@example.com', password: '123456' },
@@ -16,7 +16,6 @@ const ManagersScreen = ({route,navigation}) => {
   const [newManagerName, setNewManagerName] = useState('');
   const [newManagerEmail, setNewManagerEmail] = useState('');
   const [newManagerPassword, setNewManagerPassword] = useState('');
-  
   const handleDeleteManager = (id) => {
     Alert.alert('Confirmation', 'Are you sure you want to delete this manager?', [
       { text: 'Cancel', style: 'cancel' },
@@ -60,6 +59,7 @@ const ManagersScreen = ({route,navigation}) => {
       console.log("new user id: ", userCredential.user.uid);
       if (docSnap.exists()){
         updateDoc(doc(collection(FIREBASE_DB,'users'),userDocID),{numberOfUsers: docSnap.get('numberOfUsers') + 1});
+        setCounter(counter+1);
       }
     })
     .catch((error) => {
