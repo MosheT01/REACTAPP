@@ -251,7 +251,6 @@ function EventList({route, navigation}) {
       ]);
     }
     else
-    console.log(event);
     Alert.alert('Are you sure you want to delete?', 'deleting an event is a permenant action that cant be reversed', [
       {
         text: 'Cancel',
@@ -259,7 +258,7 @@ function EventList({route, navigation}) {
         style: 'cancel',
       },
       {text: 'OK', onPress: () => {
-        console.log('OK Pressed');
+        console.log('deleting event with event ID: ', event.eventID);
         deleteDoc(doc(FIREBASE_DB, 'events', event.eventID));
         fetchData();
       }},
@@ -267,11 +266,9 @@ function EventList({route, navigation}) {
   };
 
   const handleEditEvent = (event) => {
-    console.log("editing event: ", event);
+    console.log("editing event: ", event.eventID);
     setEventEdit({...event});
-    console.log(eventEdit);
     setDate(event.date);
-    console.log(date);
     setIsEditingEvent(true);
     setEventDetails(true);
   }
@@ -286,14 +283,10 @@ function EventList({route, navigation}) {
       console.log("didnt find any students of this manager", event.layerID, " layer");
     }
     else{
-      console.log("found users of this manager");
       querySnapshot.forEach(user => students.at(0).data.push({uid: user.get('layer'), name: user.get('name'), approved: true}));
-
-      console.log(typeof event.date);
       setEventEdit(event);
     }
     setMarkAttendance(true);
-    console.log(students);
   };
 
   const handleApproveAttendance = () => {
