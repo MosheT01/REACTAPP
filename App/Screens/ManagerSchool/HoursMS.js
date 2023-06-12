@@ -1,5 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet} from "react-native";
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+} from "react-native";
 import { Picker } from "@react-native-picker/picker";
 import { Ionicons } from "@expo/vector-icons";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
@@ -9,7 +15,7 @@ import { query, where, collection, getDocs, Timestamp, setDoc,deleteDoc, getDoc 
 
 const SelectBox = ({ options, selectedValue, onValueChange,onTouchEnd }) => {
   const pickerStyle = Platform.OS === "ios" ? styles.pickerIOS : styles.picker;
-  
+
   return (
     <Picker
       style={pickerStyle}
@@ -31,10 +37,8 @@ const SelectBox = ({ options, selectedValue, onValueChange,onTouchEnd }) => {
 const VolunteerHoursPage = ({route,navigation}) => {
   const uid = route.params;
   const currentDate = new Date();
-
   let USERS = [];
   let usersNames = [];
-  const [loading, setLoading] = useState(true);
   const [selectedYear, setSelectedYear] = useState(
     currentDate.getFullYear().toString()
   );
@@ -54,6 +58,7 @@ const VolunteerHoursPage = ({route,navigation}) => {
   const years = lastTenYears;
 
   const fetchData = async () => {
+    let counter = 0;
     try {
       let users = new Array();
       // building layerID to check for events from any layer(school manager or regional manager)
@@ -64,11 +69,16 @@ const VolunteerHoursPage = ({route,navigation}) => {
         console.log("didnt find any hours for this volunteer from ", layerID, " layer");
       }
       else{
-        console.log("found users from this manager");
+
         users.push({ label: "Names", value: ""});
-        querySnapshot.forEach(user => users.push({ label: user.get('name'), value: user.get('layer')}));
-        console.log(users);
-        setSelectedUsers(users);
+        querySnapshot.forEach(user => {
+          console.log("found users from this manager");
+          console.log();
+          users.push({ label: user.get('name'), value: user.get('layer')});
+          counter++;
+          })
+          console.log(users);
+          setSelectedUsers(users);
       }
     } catch (error) {
       console.log("Error fetching events data: ", error);
@@ -102,7 +112,6 @@ const VolunteerHoursPage = ({route,navigation}) => {
 
 const handleDelete = async (curUser,date,documentReference) => {
   await deleteDoc(documentReference);
-  handleSearch(curUser);
 };
 
   const handleSearch = async (curUser) => {
@@ -120,7 +129,7 @@ const handleDelete = async (curUser,date,documentReference) => {
           let hoursArray = new Array();
           let totHours = 0;
           querySnapshot.forEach(hour => {
-            console.log(hour);
+            console.log(typeof hour.ref);
             const timestamp = new Timestamp(hour.get('from').seconds, hour.get('from').nanoseconds);
             let date = timestamp.toDate();
             let mm = date.getMonth() + 1;
@@ -130,20 +139,12 @@ const handleDelete = async (curUser,date,documentReference) => {
 
             totHours += duration;
 
-            hoursArray.push({day: dd, month: mm, year: yyyy, duration: duration, date: date,documentReference: hour.ref});
+            hoursArray.push({day: dd, month: mm, year: yyyy, duration: duration, date: date, VID: hour.get('VID'),documentReference: hour.ref});
           });
           setHours(hoursArray);
           // setTotalHours(totHours);
         }
   };
-
-  if (loading) {
-    return (
-      <View style={styles.container}>
-        <Text>Loading...</Text>
-      </View>
-    );
-  }
 
   return (
     <View style={styles.container}>
@@ -162,6 +163,7 @@ const handleDelete = async (curUser,date,documentReference) => {
       <SelectBox 
         options={setUsers}
         selectedValue={curUser}
+        // onTouchEnd={handleSearch}
         onValueChange={(itemValue)=>{
           handleSearch(itemValue);
         }}
@@ -183,7 +185,7 @@ const handleDelete = async (curUser,date,documentReference) => {
       {/* <Text style={styles.totalHoursText}>Total Hours: {totalHours}</Text> */}
           <View style={styles.hourSheetContainer}>
             {hours.filter(hour => hour['year'] == selectedYear && hour['month'] == selectedMonth).map(hour => (
-              <View id={hour['day']} style={styles.hourSheetItem}>
+              <View key={hour['day']} style={styles.hourSheetItem}>
               <Text style={styles.dayText}>Date: {hour['year']}/{hour['month']}/{hour['day']}
               </Text>
               <Text style={styles.hourText}>Hours: {hour['duration']}</Text>
@@ -199,7 +201,9 @@ const handleDelete = async (curUser,date,documentReference) => {
             </TouchableOpacity>
               </View>
             ))}
-          </View>      
+          </View>
+          
+          
     </View>
   );
 };
@@ -214,7 +218,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 10,
     backgroundColor: "#E8E8E8",
-    color: '#000000',
+    color: '#000000', // Replace with your desired text color
   },
   inputField: {
     flex: 1,
