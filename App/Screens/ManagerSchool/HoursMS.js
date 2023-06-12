@@ -1,11 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  StyleSheet,
-} from "react-native";
+import { View, Text, TouchableOpacity, StyleSheet} from "react-native";
 import { Picker } from "@react-native-picker/picker";
 import { Ionicons } from "@expo/vector-icons";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
@@ -15,7 +9,7 @@ import { query, where, collection, getDocs, Timestamp, setDoc,deleteDoc, getDoc 
 
 const SelectBox = ({ options, selectedValue, onValueChange,onTouchEnd }) => {
   const pickerStyle = Platform.OS === "ios" ? styles.pickerIOS : styles.picker;
-
+  
   return (
     <Picker
       style={pickerStyle}
@@ -37,6 +31,8 @@ const SelectBox = ({ options, selectedValue, onValueChange,onTouchEnd }) => {
 const VolunteerHoursPage = ({route,navigation}) => {
   const uid = route.params;
   const currentDate = new Date();
+
+
   const [loading, setLoading] = useState(true);
   const [selectedYear, setSelectedYear] = useState(
     currentDate.getFullYear().toString()
@@ -105,7 +101,8 @@ const VolunteerHoursPage = ({route,navigation}) => {
 
 const handleDelete = async (date,documentReference) => {
   await deleteDoc(documentReference);
-  removeItem(documentReference);
+
+  handleSearch(curUser);
 };
 
   const handleSearch = async (curUser) => {
@@ -123,7 +120,7 @@ const handleDelete = async (date,documentReference) => {
           let hoursArray = new Array();
           let totHours = 0;
           querySnapshot.forEach(hour => {
-            console.log(typeof hour.ref);
+            console.log(hour);
             const timestamp = new Timestamp(hour.get('from').seconds, hour.get('from').nanoseconds);
             let date = timestamp.toDate();
             let mm = date.getMonth() + 1;
@@ -149,6 +146,14 @@ const handleDelete = async (date,documentReference) => {
   }
 
 
+  if (loading) {
+    return (
+      <View style={styles.container}>
+        <Text>Loading...</Text>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
       {/* <View style={styles.inputContainer}> */}
@@ -166,7 +171,6 @@ const handleDelete = async (date,documentReference) => {
       <SelectBox 
         options={setUsers}
         selectedValue={curUser}
-        // onTouchEnd={handleSearch}
         onValueChange={(itemValue)=>{
           handleSearch(itemValue);
         }}
@@ -204,9 +208,7 @@ const handleDelete = async (date,documentReference) => {
             </TouchableOpacity>
               </View>
             ))}
-          </KeyboardAwareScrollView>
-          
-          
+
     </View>
   );
 };
@@ -221,7 +223,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 10,
     backgroundColor: "#E8E8E8",
-    color: '#000000', // Replace with your desired text color
+    color: '#000000',
   },
   inputField: {
     flex: 1,

@@ -1,16 +1,22 @@
-import React, { useState } from 'react';
+import { collection, updateDoc, setDoc, doc, getDoc ,query,where,getDocs} from 'firebase/firestore';
+import { createUserWithEmailAndPassword,getAuth,updateEmail } from 'firebase/auth';
+// import {} from 'firebase/admin'
+import React, { useState,useEffect } from 'react';
 import { View, Text, Alert, FlatList, TouchableOpacity, Modal, TextInput, Button, StyleSheet } from 'react-native';
+import { FIREBASE_DB, FIREBASE_AUTH } from '../../../firebaseConfig';
 
-const ManagersScreen = () => {
-  const [managers, setManagers] = useState([
-    { id: 1, name: 'John Doe', email: 'johndoe@example.com', password: '123456' },
-    { id: 2, name: 'Jane Smith', email: 'janesmith@example.com', password: 'abcdef' },
-  ]);
+
+const ManagersScreen = ({route,navigation}) => {
+  const uid = route.params.uid;
+  const [counter,setCounter] = useState(route.params.counter);
+  const userDocID = route.params.userDocID;
+  const [managers, setManagers] = useState();
   const [modalVisible, setModalVisible] = useState(false);
   const [newManagerName, setNewManagerName] = useState('');
   const [newManagerEmail, setNewManagerEmail] = useState('');
   const [newManagerPassword, setNewManagerPassword] = useState('');
-
+  const [setUsers,setSelectedUsers] = useState([]);
+  const [loading, setLoading] = useState(true)
   const handleDeleteManager = (id) => {
     Alert.alert('Confirmation', 'Are you sure you want to delete this manager?', [
       { text: 'Cancel', style: 'cancel' },
@@ -22,6 +28,42 @@ const ManagersScreen = () => {
     setManagers((prevManagers) => prevManagers.filter((manager) => manager.id !== id));
   };
 
+  const fetchData = async () => {
+    let counter = 0;
+    try {
+      let users = new Array();
+      // building layerID to check for events from any layer(school manager or regional manager)
+      const auther = getAuth();
+      console.log(auther);
+      let q = query(collection(FIREBASE_DB, 'users'), where('manager', '==', uid)); // the query
+      let querySnapshot = await getDocs(q);
+      if (querySnapshot.empty){
+        console.log("didnt find any hours for this volunteer from ", layerID, " layer");
+      }
+      else{
+  
+        users.push({ label: "Names", value: ""});
+        querySnapshot.forEach(user => {
+          console.log("found users from this manager");
+          console.log(user.get('layer'));
+          users.push({ name: user.get('name'), layer: user.get('layer'),email:user.get('email')});
+          counter++;
+          })
+          console.log(users);
+          setSelectedUsers(users);
+      }
+    } catch (error) {
+      console.log("Error fetching events data: ", error);
+    }
+    finally{
+      setLoading(false);
+    }
+  };
+  
+  useEffect(() => {
+    fetchData();
+  }, []);
+  
   const handleAddManager = () => {
     setModalVisible(true);
   };
@@ -37,18 +79,38 @@ const ManagersScreen = () => {
     }
 
     const newManager = {
-      id: managers.length + 1,
       name: newManagerName.trim(),
       email: newManagerEmail.trim(),
       password: newManagerPassword.trim(),
     };
-
-    setManagers((prevManagers) => [...prevManagers, newManager]);
-    setNewManagerName('');
-    setNewManagerEmail('');
-    setNewManagerPassword('');
-    setModalVisible(false);
+    createUserWithEmailAndPassword(FIREBASE_AUTH, newManager.email, newManager.password)
+    .then(async (userCredential) => {
+      setDoc(doc(collection(FIREBASE_DB, 'users'), userCredential.user.uid), {
+        layer: uid + "." + counter,
+        manager: uid,
+        name: newManager.name,
+        email:newManager.email,
+      });
+      const docSnap = await getDoc(doc(collection(FIREBASE_DB, 'users'), userDocID));
+      console.log(userCredential.user.email + "  registered successfully!");
+      console.log("new user id: ", userCredential.user.uid);
+      if (docSnap.exists()){
+        updateDoc(doc(collection(FIREBASE_DB,'users'),userDocID),{numberOfUsers: docSnap.get('numberOfUsers') + 1});
+        setCounter(counter+1);
+      }
+      fetchData();
+    })
+    .catch((error) => {
+      // error signing up user
+      const errorCode = error.code;
+      const errorMessage = error.message;
+      console.log("error code: " + errorCode + ": " + errorMessage);
+      Alert.alert('Registration Failed!', 'Error code: ' + errorCode + '\nError message: ' + errorMessage + '\n', [{ text: 'OK' }]);
+    })
+    
   };
+  
+  
 
   const cancelAddManager = () => {
     setNewManagerName('');
@@ -61,20 +123,28 @@ const ManagersScreen = () => {
     <View style={styles.managerItemContainer}>
       <Text style={styles.managerName}>{item.name}</Text>
       <Text style={styles.managerEmail}>{item.email}</Text>
+      <Text style = {styles.managerEmail}>{item.layer}</Text>
       <TouchableOpacity onPress={() => handleDeleteManager(item.id)} style={styles.deleteButton}>
         <Text style={styles.deleteButtonText}>Delete</Text>
       </TouchableOpacity>
     </View>
   );
-
+  if (loading) {
+    return (
+      <View style={styles.container}>
+        <Text>Loading...</Text>
+      </View>
+    );
+  }
+  
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Managers</Text>
 
       <FlatList
-        data={managers}
+        data={setUsers}
         renderItem={renderManagerItem}
-        keyExtractor={(item) => item.id.toString()}
+        id={(item) => item.uid}
         style={styles.list}
       />
 
@@ -117,7 +187,7 @@ const ManagersScreen = () => {
       </Modal>
     </View>
   );
-};
+  };
 
 const styles = StyleSheet.create({
   container: {
@@ -140,11 +210,13 @@ const styles = StyleSheet.create({
   managerName: {
     fontSize: 16,
     fontWeight: 'bold',
+    justifyContent:'center',
     flex: 1,
   },
   managerEmail: {
     fontSize: 14,
     color: 'gray',
+    justifyContent:'center',
     flex: 1,
   },
   deleteButton: {
