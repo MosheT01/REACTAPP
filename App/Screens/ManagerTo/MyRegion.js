@@ -1,5 +1,6 @@
 import { collection, updateDoc, setDoc, doc, getDoc ,query,where,getDocs} from 'firebase/firestore';
-import { createUserWithEmailAndPassword,getAuth,importuser } from 'firebase/auth';
+import { createUserWithEmailAndPassword,getAuth,updateEmail } from 'firebase/auth';
+// import {} from 'firebase/admin'
 import React, { useState,useEffect } from 'react';
 import { View, Text, Alert, FlatList, TouchableOpacity, Modal, TextInput, Button, StyleSheet } from 'react-native';
 import { FIREBASE_DB, FIREBASE_AUTH } from '../../../firebaseConfig';
@@ -97,6 +98,7 @@ const ManagersScreen = ({route,navigation}) => {
         updateDoc(doc(collection(FIREBASE_DB,'users'),userDocID),{numberOfUsers: docSnap.get('numberOfUsers') + 1});
         setCounter(counter+1);
       }
+      fetchData();
     })
     .catch((error) => {
       // error signing up user
@@ -105,13 +107,6 @@ const ManagersScreen = ({route,navigation}) => {
       console.log("error code: " + errorCode + ": " + errorMessage);
       Alert.alert('Registration Failed!', 'Error code: ' + errorCode + '\nError message: ' + errorMessage + '\n', [{ text: 'OK' }]);
     })
-    if (loading) {
-      return (
-        <View style={styles.container}>
-          <Text>Loading...</Text>
-        </View>
-      );
-    }
     
   };
   
@@ -134,7 +129,14 @@ const ManagersScreen = ({route,navigation}) => {
       </TouchableOpacity>
     </View>
   );
-
+  if (loading) {
+    return (
+      <View style={styles.container}>
+        <Text>Loading...</Text>
+      </View>
+    );
+  }
+  
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Managers</Text>
