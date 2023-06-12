@@ -20,7 +20,7 @@ import MainM from "./App/Screens/Manager/MainM";
 
 /* manager regional  */
 import MainMT from "./App/Screens/ManagerTo/MainMT";
-
+import MyRegion from "./App/Screens/ManagerTo/MyRegion"
 /* manager school */
 import MainMS from "./App/Screens/ManagerSchool/MainMS";
 import EventMS from "./App/Screens/ManagerSchool/EventMS";
@@ -62,6 +62,8 @@ export default function App() {
         <Stack.Screen name="EventMS" component={EventMS}></Stack.Screen>
         <Stack.Screen name="MySchool" component={MySchool}></Stack.Screen>
         <Stack.Screen name="ProfileEdit" component={ProfileEdit}></Stack.Screen>
+        <Stack.Screen name="MyRegion" component={MyRegion}></Stack.Screen>
+
       </Stack.Navigator>
     </NavigationContainer>
   );
