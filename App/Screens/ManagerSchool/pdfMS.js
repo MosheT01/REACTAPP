@@ -16,6 +16,8 @@ function Pdf({ route, navigation }) {
   const [selectedFile, setSelectedFile] = useState([]);
   const [userType, setUserType] = useState([]);
   const [pdfCatagory,setCatagory] = useState("");
+  const [FileName,setFileName] = useState("");
+  const [BolbFile,setBlobFile] = useState("");
   useEffect(() => {
     if (layers.length === 4) {
       setUserType("volunteer"); // user is volunteer
@@ -427,29 +429,43 @@ function Pdf({ route, navigation }) {
     );
   };
 
-  const addPdf = () => {
+  const addPdf = (blobFile, fileName , isUploadCompleted) => {
     
     // Validate the input fields
     if (!pdfName || !pdfDescription || !pdfUrl) {
       alert("Please fill in all fields");
       return;
     }
-    const storage = getStorage();
-    const mountainsRef = ref(storage,'pdfs/'+pdfCatagory+"/"+pdfName);
+    if (!blobFile) return;
+    const sotrageRef = ref(FIREBASE_STORAGE, 'pdfs/'+pdfCatagory+"/"+'${fileName}'); //LINE A
+    const uploadTask = uploadBytesResumable(sotrageRef, blobFile); //LINE B
+    uploadTask.on(
+      "state_changed", null ,
+      (error) => console.log(error),
+      () => {
+          getDownloadURL(uploadTask.snapshot.ref).then((downloadURL) => { //LINE C
+              console.log("File available at", downloadURL);
+              isUploadCompleted(true);
+              return downloadURL;
+          });
+      }
+    );
+    // const storage = getStorage();
+    // const mountainsRef = ref(storage,'pdfs/'+pdfCatagory+"/"+pdfName);
 
-    // const metadata = {
-    //   contentType: 'application/pdf',
-    // };
-    console.log(selectedFile);
-    // Upload the file and metadata
-    uploadBytesResumable(mountainsRef, selectedFile).then((snapshot) => {
-      console.log("File uploaded successfully");
-      // Handle successful upload
-    })
-    .catch((error) => {
-      console.error("Error uploading file", error);
-      // Handle error
-    });;
+    // // const metadata = {
+    // //   contentType: 'application/pdf',
+    // // };
+    // console.log(selectedFile);
+    // // Upload the file and metadata
+    // uploadBytesResumable(mountainsRef, selectedFile).then((snapshot) => {
+    //   console.log("File uploaded successfully");
+    //   // Handle successful upload
+    // })
+    // .catch((error) => {
+    //   console.error("Error uploading file", error);
+    //   // Handle error
+    // });;
     
     // const new_url_ref = PutFile(mountainsRef)
 
@@ -479,9 +495,10 @@ function Pdf({ route, navigation }) {
       });
 
       if (result.type === 'success') {
-        const r = result.file;
-        // const b = await r.blob();
-        setSelectedFile(r);
+        const r = await fetch(result.uri);
+        const b = await r.blob();
+        setFileName(result.name)
+        setBlobFile(b);
         //setIsChoosed(true) 
         // Handle the selected file, e.g., upload it to a server
       } else {

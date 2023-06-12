@@ -85,7 +85,7 @@ const VolunteerHoursPage = ({route, navigation}) => {
 
             totHours += duration;
 
-            hoursArray.push({day: dd, month: mm, year: yyyy, duration: duration});
+            hoursArray.push({day: dd, month: mm, year: yyyy, duration: duration,date: date});
           });
           setHours(hoursArray);
           setTotalHours(totHours);
@@ -130,7 +130,7 @@ const VolunteerHoursPage = ({route, navigation}) => {
           {/* <Text style={styles.totalHoursText}>Total Hours: {totalHours}</Text> */}
           <View style={styles.hourSheetContainer}>
             {hours.filter(hour => hour['year'] == selectedYear && hour['month'] == selectedMonth).map(hour => (
-              <View key={hour['day']} style={styles.hourSheetItem}>
+              <View key={hour['date'].nanoseconds} style={styles.hourSheetItem}>
               <Text style={styles.dayText}>Date: {hour['year']}/{hour['month']}/{hour['day']}
               </Text>
               <Text style={styles.hourText}>Hours: {hour['duration']}</Text>

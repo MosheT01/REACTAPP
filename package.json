@@ -32,6 +32,7 @@
     "react-native-gesture-handler": "~2.9.0",
     "react-native-keyboard-aware-scroll-view": "^0.9.5",
     "react-native-picker": "^4.3.7",
+
     "react-navigation": "^4.4.4"
   },
   "devDependencies": {
