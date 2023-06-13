@@ -8,7 +8,6 @@ import * as DocumentPicker from 'expo-document-picker';
 import { FIREBASE_APP, FIREBASE_DB, FIREBASE_STORAGE } from "../../../firebaseConfig";
 import { getStorage, ref, getDownloadURL,uploadBytesResumable,listAll } from "firebase/storage";
 import { doc,setDoc,collection,getDocs,query } from "firebase/firestore";
-import {createDownloadResumable,downloadAsync} from "expo-file-system"
 
 function Pdf({ route, navigation }) {
   const vid = route.params;
@@ -62,7 +61,6 @@ function Pdf({ route, navigation }) {
       
         })
     })
-    setFilteredPdfList(pdfData);
   }
   // Fetch PDF data from server or local storage
   useEffect(() => {
@@ -73,7 +71,7 @@ function Pdf({ route, navigation }) {
 
   //this function will be called whenever the selected school changes:
   const filterPdfList = (selectedSchool) => {
-    if (selectedSchool === "") {
+    if (selectedSchool === ""){
       setFilteredPdfList(pdfList); // No filter applied, show all PDFs
     } else {
       const filteredList = pdfList.filter((pdf) => pdf.school === selectedSchool || pdf.school==="");
@@ -137,13 +135,7 @@ function Pdf({ route, navigation }) {
       () => {
           getDownloadURL(uploadTask.snapshot.ref).then((downloadURL) => { //LINE C
               console.log("File available at", downloadURL);
-              // isUploadCompleted(true);
-              // setPdfUrl(downloadURL);
-              setDoc(doc(collection(FIREBASE_DB,'pdfs')),{
-                name:fileName,
-                url:downloadURL,
-                catagory:pdfCatagory,
-              })
+              
           });
 
       }
@@ -213,7 +205,7 @@ function Pdf({ route, navigation }) {
         }}
         style={styles.filterPicker}
       >
-        <Picker.Item label="All Schools" value="" />
+        <Picker.Item label="סוג התנדבות" value="" />
         {schoolList.map((school) => (
           <Picker.Item label={school} value={school} key={school} />
         ))}

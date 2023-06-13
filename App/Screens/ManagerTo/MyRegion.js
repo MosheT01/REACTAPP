@@ -1,9 +1,10 @@
 import { collection, updateDoc, setDoc, doc, getDoc ,query,where,getDocs} from 'firebase/firestore';
-import { createUserWithEmailAndPassword,getAuth,updateEmail } from 'firebase/auth';
+import { createUserWithEmailAndPassword,getAuth,updateEmail,updatePassword } from 'firebase/auth';
 // import {} from 'firebase/admin'
 import React, { useState,useEffect } from 'react';
 import { View, Text, Alert, FlatList, TouchableOpacity, Modal, TextInput, Button, StyleSheet } from 'react-native';
 import { FIREBASE_DB, FIREBASE_AUTH } from '../../../firebaseConfig';
+import { Ionicons } from '@expo/vector-icons';
 
 
 const ManagersScreen = ({route,navigation}) => {
@@ -12,11 +13,13 @@ const ManagersScreen = ({route,navigation}) => {
   const userDocID = route.params.userDocID;
   const [managers, setManagers] = useState();
   const [modalVisible, setModalVisible] = useState(false);
+  const [modalChangeVisable,setModalChangeVisable] = useState(false);
   const [newManagerName, setNewManagerName] = useState('');
   const [newManagerEmail, setNewManagerEmail] = useState('');
   const [newManagerPassword, setNewManagerPassword] = useState('');
   const [setUsers,setSelectedUsers] = useState([]);
   const [loading, setLoading] = useState(true)
+  const [curManager,setCurManager] = useState({});
   const handleDeleteManager = (id) => {
     Alert.alert('Confirmation', 'Are you sure you want to delete this manager?', [
       { text: 'Cancel', style: 'cancel' },
@@ -46,7 +49,7 @@ const ManagersScreen = ({route,navigation}) => {
         querySnapshot.forEach(user => {
           console.log("found users from this manager");
           console.log(user.get('layer'));
-          users.push({ name: user.get('name'), layer: user.get('layer'),email:user.get('email')});
+          users.push({id:user.id, name: user.get('name'), layer: user.get('layer'),email:user.get('email')});
           counter++;
           })
           console.log(users);
@@ -65,7 +68,13 @@ const ManagersScreen = ({route,navigation}) => {
   }, []);
   
   const handleAddManager = () => {
-    setModalVisible(true);
+    setModalChangeVisable(true);
+  };
+  const handleEditManager = (item) => {
+    // Logic for handling the edit manager functionality
+    console.log('Edit manager with ID:', item.layer);
+    setCurManager(item);
+    setModalChangeVisable(true);
   };
 
   const addManager = () => {
@@ -109,8 +118,40 @@ const ManagersScreen = ({route,navigation}) => {
     })
     
   };
-  
-  
+  const editManager = () => {
+    console.log("cur manager is:"+curManager.id);
+    if (
+      newManagerName.trim() === '' ||
+      newManagerEmail.trim() === '' ||
+      newManagerPassword.trim() === ''
+    ) {
+      Alert.alert('Error', 'Please enter a valid name, email, and password');
+      return;
+    }
+
+    const newManager = {
+      name: newManagerName.trim(),
+      email: newManagerEmail.trim(),
+      password: newManagerPassword.trim(),
+    };
+    createUserWithEmailAndPassword(FIREBASE_AUTH, newManager.email, newManager.password)
+    .then(async (userCredential) => {
+      updateDoc(doc(collection(FIREBASE_DB, 'users'), curManager.id), {
+        layer: curManager.layer,
+        manager: uid,
+        name: newManager.name,
+        email: newManager.email,
+      })
+      setModalChangeVisable(false);
+      fetchData();
+    });
+  }
+  const cancelEditManager = () => {
+    setNewManagerName('');
+    setNewManagerEmail('');
+    setNewManagerPassword('');
+    setModalChangeVisable(false);
+  }
 
   const cancelAddManager = () => {
     setNewManagerName('');
@@ -123,10 +164,14 @@ const ManagersScreen = ({route,navigation}) => {
     <View style={styles.managerItemContainer}>
       <Text style={styles.managerName}>{item.name}</Text>
       <Text style={styles.managerEmail}>{item.email}</Text>
-      <Text style = {styles.managerEmail}>{item.layer}</Text>
-      <TouchableOpacity onPress={() => handleDeleteManager(item.id)} style={styles.deleteButton}>
-        <Text style={styles.deleteButtonText}>Delete</Text>
+      <Text style = {styles.managerCode}>{item.layer}</Text>
+      <TouchableOpacity onPress={() => handleEditManager(item)} style={styles.editButton}>
+      <Ionicons name="pencil" size={24} color="black" />
+    </TouchableOpacity>
+      <TouchableOpacity onPress={() => handleDeleteManager(item.id)} >
+        <Ionicons name='trash-bin-outline' size={24} color="#333"/>
       </TouchableOpacity>
+      
     </View>
   );
   if (loading) {
@@ -179,12 +224,44 @@ const ManagersScreen = ({route,navigation}) => {
               style={styles.input}
               secureTextEntry
             />
-
             <Button title="Add" onPress={addManager} />
             <Button title="Cancel" onPress={cancelAddManager} color="red" />
           </View>
         </View>
       </Modal>
+      <Modal visible={modalChangeVisable} animationType="slide" transparent>
+        <View style={styles.modalContainer}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Edit Manager</Text>
+
+            <TextInput
+              placeholder="Name"
+              value={newManagerName}
+              onChangeText={(text) => setNewManagerName(text)}
+              style={styles.input}
+            />
+
+            <TextInput
+              placeholder="Email"
+              value={newManagerEmail}
+              onChangeText={(text) => setNewManagerEmail(text)}
+              style={styles.input}
+              keyboardType="email-address"
+            />
+
+            <TextInput
+              placeholder="Password"
+              value={newManagerPassword}
+              onChangeText={(text) => setNewManagerPassword(text)}
+              style={styles.input}
+              secureTextEntry
+            />
+            <Button title="Change" onPress={editManager} />
+            <Button title="Cancel" onPress={cancelEditManager} color="red" />
+          </View>
+        </View>
+      </Modal>
+      
     </View>
   );
   };
@@ -205,7 +282,11 @@ const styles = StyleSheet.create({
   managerItemContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 10,
+    backgroundColor:'#e2e5d1',
+    borderBottomColor: '#ccc',
+    borderRadius:7,
+    padding:10
   },
   managerName: {
     fontSize: 16,
@@ -219,6 +300,13 @@ const styles = StyleSheet.create({
     justifyContent:'center',
     flex: 1,
   },
+  managerCode: {
+    fontSize: 14,
+    color: 'gray',
+    justifyContent:'center',
+    marginLeft:20,
+    flex: 1,
+  },
   deleteButton: {
     backgroundColor: 'red',
     paddingHorizontal: 12,
@@ -228,6 +316,9 @@ const styles = StyleSheet.create({
   deleteButtonText: {
     color: 'white',
     fontWeight: 'bold',
+  },
+  editButton: {
+    marginRight: 10,
   },
   addButton: {
     backgroundColor: 'blue',
