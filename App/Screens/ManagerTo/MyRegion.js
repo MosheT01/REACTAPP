@@ -1,5 +1,5 @@
-import { collection, updateDoc, setDoc, doc, getDoc ,query,where,getDocs} from 'firebase/firestore';
-import { createUserWithEmailAndPassword,getAuth,updateEmail,updatePassword } from 'firebase/auth';
+import { collection, updateDoc, setDoc, doc, getDoc ,query,where,getDocs,deleteDoc} from 'firebase/firestore';
+import { createUserWithEmailAndPassword,getAuth,deleteUser } from 'firebase/auth';
 // import {} from 'firebase/admin'
 import React, { useState,useEffect } from 'react';
 import { View, Text, Alert, FlatList, TouchableOpacity, Modal, TextInput, Button, StyleSheet } from 'react-native';
@@ -20,15 +20,67 @@ const ManagersScreen = ({route,navigation}) => {
   const [setUsers,setSelectedUsers] = useState([]);
   const [loading, setLoading] = useState(true)
   const [curManager,setCurManager] = useState({});
-  const handleDeleteManager = (id) => {
+  
+  
+  
+  const handleDeleteManager = (item) => {
     Alert.alert('Confirmation', 'Are you sure you want to delete this manager?', [
       { text: 'Cancel', style: 'cancel' },
-      { text: 'Delete', style: 'destructive', onPress: () => deleteManager(id) },
+      { text: 'Delete', style: 'destructive', onPress: () => deleteManager(item) },
     ]);
   };
-
-  const deleteManager = (id) => {
-    setManagers((prevManagers) => prevManagers.filter((manager) => manager.id !== id));
+  const deleteHours = async (user) =>{
+    console.log("user id is: "+user.get('layer'))
+    try {
+      let q = query(collection(FIREBASE_DB, 'Hours'), where('VID', '==', user.get("layer"))); // the query
+      let querySnapshot = await getDocs(q);
+      if (querySnapshot.empty){
+        console.log("didnt find any hours for this volunteer from ", user.get('layer'), " layer");
+        return;
+      }
+      else{
+        querySnapshot.forEach(doc => {
+          console.log(doc)
+          deleteDoc(doc.ref);
+          })
+      }
+    } catch (error) {
+      console.log("Error fetching events data: ", error);
+    }
+    finally{
+      setLoading(false);
+    }
+  }
+  const deleteusers = async (item) => {
+    console.log("delete this manager:"+ item.layer)
+    try {
+      let q = query(collection(FIREBASE_DB, 'users'), where('manager', '==', item.layer)); // the query
+      let querySnapshot = await getDocs(q);
+      if (querySnapshot.empty){
+        console.log("didnt find any hours for this volunteer from ", item.layer, " layer");
+      }
+      else{
+        querySnapshot.forEach(user => {
+          console.log(user.id)
+          deleteHours(user)
+          deleteUser(user.id)
+          deleteDoc(user.ref)
+          })
+      }
+    } catch (error) {
+      console.log("Error fetching events data: ", error);
+    }
+    finally{
+      setLoading(false);
+    }
+  }
+  const deleteManager = (item) => {
+    console.log("delete this manager: "+typeof item);
+    deleteusers(item);
+    // deleteUser(item.id);
+    deleteDoc(item.ref)
+    fetchData();
+    // setManagers((prevManagers) => prevManagers.filter((manager) => manager.id !== id));
   };
 
   const fetchData = async () => {
@@ -41,15 +93,15 @@ const ManagersScreen = ({route,navigation}) => {
       let q = query(collection(FIREBASE_DB, 'users'), where('manager', '==', uid)); // the query
       let querySnapshot = await getDocs(q);
       if (querySnapshot.empty){
-        console.log("didnt find any hours for this volunteer from ", layerID, " layer");
+        console.log("didnt find any hours for this volunteer from ", uid, " layer");
       }
       else{
   
-        users.push({ label: "Names", value: ""});
+        
         querySnapshot.forEach(user => {
           console.log("found users from this manager");
           console.log(user.get('layer'));
-          users.push({id:user.id, name: user.get('name'), layer: user.get('layer'),email:user.get('email')});
+          users.push({ref:user.ref,id:user.id, name: user.get('name'), layer: user.get('layer'),email:user.get('email')});
           counter++;
           })
           console.log(users);
@@ -68,7 +120,7 @@ const ManagersScreen = ({route,navigation}) => {
   }, []);
   
   const handleAddManager = () => {
-    setModalChangeVisable(true);
+    setModalVisible(true);
   };
   const handleEditManager = (item) => {
     // Logic for handling the edit manager functionality
@@ -108,6 +160,7 @@ const ManagersScreen = ({route,navigation}) => {
         setCounter(counter+1);
       }
       fetchData();
+      setModalVisible(false);
     })
     .catch((error) => {
       // error signing up user
@@ -168,7 +221,7 @@ const ManagersScreen = ({route,navigation}) => {
       <TouchableOpacity onPress={() => handleEditManager(item)} style={styles.editButton}>
       <Ionicons name="pencil" size={24} color="black" />
     </TouchableOpacity>
-      <TouchableOpacity onPress={() => handleDeleteManager(item.id)} >
+      <TouchableOpacity onPress={() => handleDeleteManager(item)} >
         <Ionicons name='trash-bin-outline' size={24} color="#333"/>
       </TouchableOpacity>
       
