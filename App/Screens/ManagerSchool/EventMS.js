@@ -75,7 +75,7 @@ function EventList({route, navigation}) {
         for (i = 1 ; i <= 3; i++){ // run for all layers
           let layerID = layers[0];
           for (j = 1; j < i; j++){
-            layerID += "." + layers[j]; 
+            layerID += "." + layers[j];
           }
 
           let q = query(collection(FIREBASE_DB, 'events'), where('layerID', '==', layerID)); // the query

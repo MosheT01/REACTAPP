@@ -1,20 +1,17 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, TouchableOpacity, FlatList } from "react-native";
+import { View, Text, TouchableOpacity, FlatList, Modal, SafeAreaView, StyleSheet, Alert, Dimensions } from "react-native";
+import { FIREBASE_DB } from "../../../firebaseConfig";
+import { query, where, collection, getDocs, updateDoc, doc } from 'firebase/firestore';
 
-const GroupList = () => {
-  const [groups, setGroups] = useState([
-    { id: 1, name: "Group A", students: [] },
-    { id: 2, name: "Group B", students: [] },
-    { id: 3, name: "Group C", students: [] },
-  ]);
+const GroupList = ({route, navigation}) => {
+  const uid = route.params;
+  const screenHeight = Dimensions.get('screen').height;
+  const [loading, setLoading] = useState(true);
+  const [groupsHeight, setGroupsHeight] = useState(180);
+  const [groups, setGroups] = useState([]);
   const [selectedGroup, setSelectedGroup] = useState(null);
-  const [students, setStudents] = useState([
-    { id: 1, name: "John Doe", selected: false },
-    { id: 2, name: "Jane Smith", selected: false },
-    { id: 3, name: "Alice Johnson", selected: false },
-    { id: 4, name: "Bob Williams", selected: false },
-  ]);
-  const [refresh, setRefresh] = useState(false);
+  const [students, setStudents] = useState([]);
+  const [refresh, setRefresh] = useState();
   const [showAddStudent, setShowAddStudent] = useState(false); // State variable to control the visibility of the "Add Student" section
 
   const getAvailableStudents = () => {
@@ -25,35 +22,30 @@ const GroupList = () => {
   };
 
   const handleAddStudent = () => {
-    if (selectedGroup) {
-      const selectedStudents = students.filter((student) => student.selected);
-      setGroups((prevGroups) => {
-        const updatedGroups = prevGroups.map((group) => {
-          if (group.id === selectedGroup.id) {
-            return {
-              ...group,
-              students: [...group.students, ...selectedStudents],
-            };
-          }
-          return group;
-        });
-        return updatedGroups;
-      });
-      setSelectedGroup(null);
-      setStudents((prevStudents) =>
-        prevStudents.map((student) => ({
-          ...student,
-          selected: false,
-        }))
-      );
-      setShowAddStudent(false); // Hide the "Add Student" section
-    }
+    const selectedStudents = students.filter((student) => student.selected);
+    selectedStudents.forEach((student) => {
+      updateDoc(doc(collection(FIREBASE_DB, 'users'), student.id), {volunteerPlaceID: selectedGroup.id})
+    })
+    setSelectedGroup(null);
+    setShowAddStudent(false);
+    fetchData();
   };
 
-  const handleToggleSelect = (studentId) => {
+  const refreshStudentFlatList = () => {
+    setRefresh((prevRefresh) => !prevRefresh);
+  };
+
+  const handleRemoveStudent = (studentId) => {
+    const selectedStudent = selectedGroup.students.filter((student) => student.id === studentId);
+    console.log("removing student ", selectedStudent.at(0).id, " from group ", selectedGroup.id);
+    updateDoc(doc(collection(FIREBASE_DB, 'users'), selectedStudent.at(0).id), {volunteerPlaceID: null});
+    fetchData();
+  };
+
+  const handleToggleSelect = (studentID) => {
     setStudents((prevStudents) =>
       prevStudents.map((student) => {
-        if (student.id === studentId) {
+        if (student.id === studentID) {
           return {
             ...student,
             selected: !student.selected,
@@ -62,39 +54,6 @@ const GroupList = () => {
         return student;
       })
     );
-  };
-
-  const handleRemoveStudent = (studentId) => {
-    setGroups((prevGroups) => {
-      const updatedGroups = prevGroups.map((group) => {
-        if (group.id === selectedGroup.id) {
-          const updatedStudents = group.students.filter(
-            (student) => student.id !== studentId
-          );
-          return {
-            ...group,
-            students: updatedStudents,
-          };
-        }
-        return group;
-      });
-      return updatedGroups;
-    });
-
-    setSelectedGroup((prevSelectedGroup) => {
-      if (prevSelectedGroup && prevSelectedGroup.id === selectedGroup.id) {
-        const updatedStudents = prevSelectedGroup.students.filter(
-          (student) => student.id !== studentId
-        );
-        return {
-          ...prevSelectedGroup,
-          students: updatedStudents,
-        };
-      }
-      return prevSelectedGroup;
-    });
-
-    setRefresh(true);
   };
 
   const renderGroup = ({ item }) => (
@@ -155,96 +114,160 @@ const GroupList = () => {
     </TouchableOpacity>
   );
 
-  useEffect(() => {
-    if (refresh) {
-      setRefresh(false);
+  const fetchData = async () => {
+    const groupQuery = query(collection(FIREBASE_DB, 'events'), where('layerID', '==', uid));
+    const groupsSnapShot = await getDocs(groupQuery);
+    if (groupsSnapShot.empty){
+      Alert.alert('No volunteering places(Groups) found', 'add a group by creating a re-accoring event in the events screen', [{text: 'OK', onPress: () => {console.log("OK pressed")}}]);
     }
-  }, [refresh]);
+    else{
+      let collectGroups = new Array();
+      groupsSnapShot.forEach((group) => {
+        if (group.get('repeat') !== 0){
+          console.log("pushing event: ", group.id);
+          collectGroups.push({id: group.id, name: group.get('title'), students: new Array()});
+        }
+      })
+      const studentsQuery = query(collection(FIREBASE_DB, 'users'), where('manager', '==', uid));
+      const studentsSnapShot = await getDocs(studentsQuery);
+      if (studentsSnapShot.empty){
+        Alert.alert('no students found', 'make sure your students entered the system using your school code(in your profile)', [{text: 'OK', onPress: () => {console.log("OK pressed")}}]);
+      }
+      else{
+        let collectStudents = new Array();
+        console.log("scanning students");
+        studentsSnapShot.forEach((student) => {
+          const volunteerPlaceID = student.get('volunteerPlaceID');
+          const studentObj = {id: student.id, name: student.get('name'), volunteerPlace: volunteerPlaceID, selected: false};
+          let hasGroup = false;
+          collectGroups.forEach((group) => {
+            if (group.id === volunteerPlaceID){
+              group.students.push(studentObj);
+              hasGroup = true;
+            }
+          });
+          if (!hasGroup){
+            collectStudents.push(studentObj);
+          }
+        })
+        setGroups(collectGroups);
+        setStudents(collectStudents);
+        console.log(groups);
+        console.log(students);
+      }
+    }
+    setLoading(false);
+  }
 
-  // Reload the whole component when refresh is true
-  if (refresh) {
-    return <GroupList />;
+  useEffect(() => {
+    fetchData();
+    setLoading(false);
+    setRefresh(true);
+  }, []);
+
+  if (loading){
+    return (<Text>Loading...</Text>)
   }
 
   return (
-    <View style={{ flex: 1, flexDirection: 'column', padding: 20 }}>
-      <Text style={{ fontSize: 20, marginBottom: 10 }}>Groups</Text>
-      <FlatList
-        data={groups}
-        renderItem={renderGroup}
-        keyExtractor={(item) => item.id.toString()}
-        style={{flexGrow: 0}}
-      />
+    <View style={styles.container}>
+      <TouchableOpacity style={styles.addStudentButton} onPress={() => {
+        if (selectedGroup===null){
+          Alert.alert('No group selected', 'select a group by pressing on the group you want to add students to', [{text: 'OK', onPress: () => console.log("OK pressed")}]);
+        } 
+        else{setShowAddStudent(true)}
+        }}>
+        <Text style={{ color: "white", fontSize: 16, textAlign: "center", top: 9, }}>Add Student</Text>
+      </TouchableOpacity>
+      <View style={{maxHeight: '23%'}} onLayout={(event) => {const {x, y, width, height} = event.nativeEvent.layout; setGroupsHeight(height)}}>
+        <Text style={{ fontSize: 20, marginBottom: 5, marginTop: 5 }}>Groups</Text>
+        <FlatList
+          data={groups}
+          renderItem={renderGroup}
+          keyExtractor={(item) => item.id.toString()}
+          style={{flexGrow: 0}}
+        />
+        <View style={styles.line}></View>
+      </View>
 
-      {selectedGroup && (
-        <View>
-          <Text style={{ fontSize: 20, marginBottom: 10 }}>
-            Students in {selectedGroup.name}
-          </Text>
-          <FlatList
-            data={selectedGroup.students}
-            renderItem={renderStudent}
-            keyExtractor={(item) => item.id.toString()}
-            extraData={refresh} // Trigger re-render when refresh value changes
-          />
-          <View style={{alignContent: 'flex-end'}} >
-          <TouchableOpacity
-            style={{
-              backgroundColor: "blue",
-              padding: 10,
-              alignItems: "center",
-              borderRadius: 5,
-              marginTop: 10,
-              backgroundColor: 'blue',
-            }}
-            onPress={() => setShowAddStudent(true)} // Show the "Add Student" section
-            >
-            <Text style={{ color: "white" }}>Add Student</Text>
+      <View>
+        {selectedGroup && (
+          <View>
+            <Text style={{ fontSize: 20, marginBottom: 10 }}>
+              Students in {selectedGroup.name}
+            </Text>
+            <FlatList
+              style={{height: screenHeight - groupsHeight - 225}}
+              data={selectedGroup.students}
+              renderItem={renderStudent}
+              keyExtractor={(item) => item.id.toString()}
+            />
+            <View style={styles.line}></View>
+          </View>
+        )}
+      </View>
+
+      <Modal visible={showAddStudent} animationType="slide">
+        <SafeAreaView style={styles.container}>
+          <TouchableOpacity style={styles.confirmButton} onPress={() => handleAddStudent()}>
+            <Text style={{ color: "white", fontSize: 16, textAlign: "center", top: 9, }}>Confirm</Text>
           </TouchableOpacity>
-        </View>
-        </View>
-      )}
-
-      {showAddStudent && (
-        <View>
-          <Text style={{ fontSize: 20, marginBottom: 10 }}>Add Student</Text>
-          <FlatList
-            data={getAvailableStudents()}
-            renderItem={renderAddStudent}
-            keyExtractor={(item) => item.id.toString()}
-          />
-
-          <TouchableOpacity
-            style={{
-              backgroundColor: "green",
-              padding: 10,
-              alignItems: "center",
-              borderRadius: 5,
-              marginTop: 10,
-            }}
-            onPress={handleAddStudent}
-          >
-          <Text style={{ color: "white" }}>Confirm</Text>
+          <TouchableOpacity style={styles.cancelButton} onPress={() => setShowAddStudent(false)}>
+            <Text style={{ color: "white", fontSize: 16, textAlign: "center", top: 9, }}>Cancel</Text>
           </TouchableOpacity>
-        </View>
-      )}
-
-      {showAddStudent && (
-        <TouchableOpacity
-          style={{
-            backgroundColor: "blue",
-            padding: 10,
-            alignItems: "center",
-            borderRadius: 5,
-            marginTop: 10,
-          }}
-          onPress={() => setShowAddStudent(false)} // Hide the "Add Student" section
-        >
-        <Text style={{ color: "white" }}>Cancel</Text>
-        </TouchableOpacity>
-      )}
+          <View style={{height: screenHeight - 180}}>
+            <Text style={{ fontSize: 20, marginBottom: 10 }}>Add Student</Text>
+            <FlatList
+              data={getAvailableStudents()}
+              renderItem={renderAddStudent}
+              keyExtractor={(item) => item.id.toString()}
+            />
+          </View>
+        </SafeAreaView>
+      </Modal>
     </View>
   );
 };
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    padding: 16,
+    backgroundColor: '#fff',
+  },
+  addStudentButton: {
+    height: 40, 
+    width: '100%', 
+    backgroundColor: 'blue', 
+    position: 'absolute', 
+    bottom: 17, 
+    alignSelf: 'center', 
+    borderRadius: 5,
+  },
+  confirmButton: {
+    height: 42,
+    width: '100%',
+    backgroundColor: '#08a50a',
+    position: 'absolute',
+    bottom: 60, 
+    alignSelf: 'center', 
+    borderRadius: 5,
+  },
+  cancelButton: {
+    height: 42,
+    width: '100%', 
+    backgroundColor: '#ff2a2a', 
+    position: 'absolute', 
+    bottom: 13, 
+    alignSelf: 'center', 
+    borderRadius: 5,
+  },
+  line: {
+    marginBottom: 10,
+    width: "100%",
+    height: 2,
+    backgroundColor: "black",
+  },
+});
 
 export default GroupList;
