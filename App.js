@@ -55,6 +55,8 @@ export default function App() {
         <Stack.Screen name="MainM" component={MainM}></Stack.Screen>
         {/* manager regional  */}
         <Stack.Screen name="MainMT" component={MainMT}></Stack.Screen>
+        <Stack.Screen name="MyRegion" component={MyRegion}></Stack.Screen>
+
         {/* manager school */}
         <Stack.Screen name="MainMS" component={MainMS}></Stack.Screen>
         <Stack.Screen name="pdfMS" component={pdfMS}></Stack.Screen>
@@ -62,7 +64,6 @@ export default function App() {
         <Stack.Screen name="EventMS" component={EventMS}></Stack.Screen>
         <Stack.Screen name="MySchool" component={MySchool}></Stack.Screen>
         <Stack.Screen name="ProfileEdit" component={ProfileEdit}></Stack.Screen>
-        <Stack.Screen name="MyRegion" component={MyRegion}></Stack.Screen>
 
       </Stack.Navigator>
     </NavigationContainer>

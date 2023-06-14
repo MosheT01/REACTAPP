@@ -1,48 +1,96 @@
 import React, { useState, useEffect } from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  FlatList,
-  TouchableOpacity,
-  Linking,
-  Modal,
-  TextInput,
-  Button,
+import {View,Text,StyleSheet,FlatList,TouchableOpacity,Linking,Modal,TextInput,Button,window  
 } from "react-native";
+import { Picker } from '@react-native-picker/picker'; // Updated import statement
 import Icon from "react-native-vector-icons/FontAwesome";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
+import * as DocumentPicker from 'expo-document-picker';
+import { FIREBASE_APP, FIREBASE_DB, FIREBASE_STORAGE } from "../../../firebaseConfig";
+import { getStorage, ref, getDownloadURL,uploadBytesResumable,listAll } from "firebase/storage";
+import { doc,setDoc,collection,getDocs,query } from "firebase/firestore";
 
-function Pdf() {
+
+function Pdf({ route, navigation }) {
+  const vid = route.params;
+  const userID = String(vid); // user id
+  const layers = userID.split('.');
+  const [selectedFile, setSelectedFile] = useState([]);
+  const [userType, setUserType] = useState([]);
+  const [pdfCatagory,setCatagory] = useState("");
+  const [fileName,setFileName] = useState("");
+  const [blobFile,setBlobFile] = useState("");
+  const [downloadAble,setDownloadable] = useState("");
+  useEffect(() => {
+    if (layers.length === 4) {
+      setUserType("volunteer"); // user is volunteer
+    } else if (layers.length === 3) {
+      setUserType("schoolManager"); // user is school manager
+    } else if (layers.length === 2) {
+      setUserType("schoolManager"); // user is regional manager
+    } else if (layers.length === 1) {
+      setUserType("admin"); // user is admin
+    } else {
+      console.log("valid user type not found");
+    }
+  }, [layers]);
+  /////////////////////////////////////checking user type
   const [pdfList, setPdfList] = useState([]);
   const [modalVisible, setModalVisible] = useState(false);
   const [pdfName, setPdfName] = useState("");
   const [pdfDescription, setPdfDescription] = useState("");
   const [pdfUrl, setPdfUrl] = useState("");
+  const [selectedSchool, setSelectedSchool] = useState("");
+  const [filteredPdfList, setFilteredPdfList] = useState([]);
+  const [schoolList,setSchoolList] = useState([]);
+  const fetchData = async () => {
+    const listref = ref(FIREBASE_STORAGE,'pdfs/');
+    listAll(listref).then((res)=>{
+      res.prefixes.forEach((folderRef)=>{
+        listAll(folderRef).then((itemsRef)=>{
+          itemsRef.prefixes.forEach((itemRef)=>{
+            listAll(itemRef).then((Ref)=>{
+            Ref.items.forEach((Re)=>{
+              const newPdf = {
+                name: Re.name,
+                pdfUrl: Re.fullPath,
+                school: Re.parent.name,
+              };
+              setPdfList((prevPdfList) => [...prevPdfList, newPdf]);
+            });
+            // Update the PDF list
+            setSchoolList((prevSchollList)=>[...prevSchollList,itemRef.name]);
 
+          })})
+          })
+          
+      
+        })
+    })
+  }
   // Fetch PDF data from server or local storage
   useEffect(() => {
     // Your code here to fetch the PDF data, which should be an array of objects containing a name, photo URL, description, and pdfUrl for each PDF
     // Example data:
-    const pdfData = [
-      {
-        name: "PDF 1",
-        description: "description 1",
-        pdfUrl:
-          "https://leoro.org.il/wp-content/uploads/2021/10/%D7%A4%D7%A2%D7%99%D7%9C%D7%95%D7%AA-%D7%9C%D7%92%D7%99%D7%9C-%D7%94%D7%96%D7%94%D7%91-%D7%97%D7%93%D7%A9-1.pdf",
-      },
-      {
-        name: "PDF 2",
-        description: "description 2",
-        pdfUrl: "https://example.com/pdf2.pdf",
-      },
-      // ...rest of the PDF data
-    ];
-    setPdfList(pdfData);
-  }, []);
+    fetchData();
+   }, []);
 
-  const downloadPdf = (url) => {
+  //this function will be called whenever the selected school changes:
+  const filterPdfList = (selectedSchool) => {
+    if (selectedSchool === ""){
+      setFilteredPdfList(pdfList); // No filter applied, show all PDFs
+    } else {
+      const filteredList = pdfList.filter((pdf) => pdf.school === selectedSchool || pdf.school==="");
+      setFilteredPdfList(filteredList);
+    }
+  };
+  const downloadPdf = async (url) => {
+    getDownloadURL(ref(FIREBASE_STORAGE, url))
+    .then((url) => {
     Linking.openURL(url);
+  }).catch((error) => {
+    console.log(error);
+  });
+
   };
 
   const renderPdfItem = ({ item, index }) => {
@@ -55,6 +103,7 @@ function Pdf() {
       setPdfList(updatedPdfList);
     };
 
+
     return (
       <View style={styles.pdfItem}>
         <TouchableOpacity onPress={() => downloadPdf(item.pdfUrl)}>
@@ -66,41 +115,111 @@ function Pdf() {
           <Text style={styles.pdfDescription}>{item.description}</Text>
         </View>
 
+        {userType === "regionalManagaer" && (
         <TouchableOpacity onPress={deletePdf}>
           <Icon name="trash" size={30} color="red" />
         </TouchableOpacity>
+      )}
       </View>
     );
   };
 
   const addPdf = () => {
+    
     // Validate the input fields
-    if (!pdfName || !pdfDescription || !pdfUrl) {
+    if (!pdfName || !pdfDescription ) {
       alert("Please fill in all fields");
       return;
     }
+    if (!blobFile) return;
+    const storageRef = ref(FIREBASE_STORAGE, 'pdfs/'+pdfCatagory+"/"+ fileName); //LINE A
+    const uploadTask = uploadBytesResumable(storageRef, blobFile); //LINE B
+    uploadTask.on(
+      "state_changed", null ,
+      (error) => console.log(error),
+      () => {
+          getDownloadURL(uploadTask.snapshot.ref).then((downloadURL) => { //LINE C
+              console.log("File available at", downloadURL);
+              
+          });
 
-    // Create a new PDF object
-    const newPdf = {
-      name: pdfName,
-      description: pdfDescription,
-      pdfUrl: pdfUrl,
-    };
+      }
+    );
+    // const storage = getStorage();
+    // const mountainsRef = ref(storage,'pdfs/'+pdfCatagory+"/"+pdfName);
 
+    // // const metadata = {
+    // //   contentType: 'application/pdf',
+    // // };
+    // console.log(selectedFile);
+    // // Upload the file and metadata
+    // uploadBytesResumable(mountainsRef, selectedFile).then((snapshot) => {
+    //   console.log("File uploaded successfully");
+    //   // Handle successful upload
+    // })
+    // .catch((error) => {
+    //   console.error("Error uploading file", error);
+    //   // Handle error
+    // });;
+    
+    // const new_url_ref = PutFile(mountainsRef)
+
+    //Create a new PDF object
     // Update the PDF list
-    setPdfList((prevPdfList) => [...prevPdfList, newPdf]);
+    // setPdfList((prevPdfList) => [...prevPdfList, newPdf]);
 
     // Reset the input fields and close the modal
     setPdfName("");
     setPdfDescription("");
     setPdfUrl("");
     setModalVisible(false);
+    filterPdfList(selectedSchool);
+
+  };
+  const handleFileSelection = async () => {
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: Platform.OS === 'ios' ? 'application/pdf' : '/',
+      });
+
+      if (result.type === 'success') {
+        const r = await fetch(result.uri);
+        const b = await r.blob();
+        setFileName(result.name)
+        setBlobFile(b);
+        //setIsChoosed(true) 
+        // Handle the selected file, e.g., upload it to a server
+      } else {
+        setSelectedFile(null);
+        // Handle cancellation or any other error
+      }
+    } catch (error) {
+      console.log('Error picking file:', error);
+    }
   };
 
   return (
     <View style={styles.container}>
+       {/* Filter section */}
+    {userType === "schoolManager" && (
+      <Picker
+        selectedValue={selectedSchool}
+        onValueChange={(itemValue) => {
+          setSelectedSchool(itemValue);
+          filterPdfList(itemValue);
+        }}
+        style={styles.filterPicker}
+      >
+        <Picker.Item label="סוג התנדבות" value="" />
+        {schoolList.map((school) => (
+          <Picker.Item label={school} value={school} key={school} />
+        ))}
+      </Picker>
+    )}
+
+    {/* PDF list */}
       <FlatList
-        data={pdfList}
+        data={filteredPdfList}
         renderItem={renderPdfItem}
         keyExtractor={(item) => item.name}
       />
@@ -129,13 +248,26 @@ function Pdf() {
 
             <TextInput
               style={styles.input}
+              placeholder="pdfCatagory"
+              placeholderTextColor="#999"
+              value={pdfCatagory}
+              onChangeText={(text) => setCatagory(text)}
+            />
+              <View>
+              <Button title="Attach File" onPress={handleFileSelection} />
+              {fileName && (
+                <Text>File: {fileName}</Text>
+              )}
+            </View>
+            {/* <TextInput
+              style={styles.input}
               placeholder="PDF URL"
               placeholderTextColor="#999"
               value={pdfUrl}
               onChangeText={(text) => setPdfUrl(text)}
-            />
+            /> */}
+
             <View style={styles.modalButtons}>
-              
               <Button title="Add" onPress={addPdf} />
 
               <Button
@@ -152,12 +284,15 @@ function Pdf() {
         </KeyboardAwareScrollView>
       </Modal>
 
-      <TouchableOpacity
-        style={styles.addButton}
-        onPress={() => setModalVisible(true)}
-      >
-        <Icon name="plus" size={30} color="white" />
-      </TouchableOpacity>
+    {/* Button to open the modal (visible only for school managers) */}
+    {userType === "schoolManager" && (
+        <TouchableOpacity
+          style={styles.addButton}
+          onPress={() => setModalVisible(true)}
+        >
+          <Icon name="plus" size={30} color="white" />
+        </TouchableOpacity>
+      )}
     </View>
   );
 }
@@ -226,11 +361,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   modalButtons: {
-    flexDirection: "row",
-    justifyContent: "space-around",
-    width: "60%",
-  },
-  buttonContanter:{
     flexDirection: "row",
     justifyContent: "space-around",
     width: "60%",

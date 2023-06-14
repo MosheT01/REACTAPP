@@ -7,8 +7,9 @@ import { FIREBASE_DB, FIREBASE_AUTH } from '../../../firebaseConfig';
 import { Ionicons } from '@expo/vector-icons';
 
 
-const ManagersScreen = ({route,navigation}) => {
+const ManagersScreen = ({route, navigation}) => {
   const uid = route.params.uid;
+  console.log("params at MyRegion: ", route);
   const [counter,setCounter] = useState(route.params.counter);
   const userDocID = route.params.userDocID;
   const [managers, setManagers] = useState();
@@ -30,7 +31,7 @@ const ManagersScreen = ({route,navigation}) => {
     ]);
   };
   const deleteHours = async (user) =>{
-    console.log("user id is: "+user.get('layer'))
+    console.log("user id is: "+ user.get('layer'))
     try {
       let q = query(collection(FIREBASE_DB, 'Hours'), where('VID', '==', user.get("layer"))); // the query
       let querySnapshot = await getDocs(q);
@@ -45,6 +46,7 @@ const ManagersScreen = ({route,navigation}) => {
           })
       }
     } catch (error) {
+      console.log("3");
       console.log("Error fetching events data: ", error);
     }
     finally{
@@ -68,6 +70,7 @@ const ManagersScreen = ({route,navigation}) => {
           })
       }
     } catch (error) {
+      console.log("2");
       console.log("Error fetching events data: ", error);
     }
     finally{
@@ -96,8 +99,6 @@ const ManagersScreen = ({route,navigation}) => {
         console.log("didnt find any hours for this volunteer from ", uid, " layer");
       }
       else{
-  
-        
         querySnapshot.forEach(user => {
           console.log("found users from this manager");
           console.log(user.get('layer'));
@@ -108,6 +109,7 @@ const ManagersScreen = ({route,navigation}) => {
           setSelectedUsers(users);
       }
     } catch (error) {
+      console.log("1");
       console.log("Error fetching events data: ", error);
     }
     finally{

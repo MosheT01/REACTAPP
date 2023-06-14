@@ -4,8 +4,8 @@ import Icon from "react-native-vector-icons/FontAwesome";
 
 const MainScreen = ({ route, navigation }) => {
   const uid = route.params;
-  const handleNavigate = (screenName) => {
-    navigation.navigate(screenName, uid);
+  const handleNavigate = (screenName,params) => {
+    navigation.navigate(screenName, params);
   };
   const handleProfile = () => {
     navigation.navigate("Profile");
@@ -48,7 +48,7 @@ const MainScreen = ({ route, navigation }) => {
 
         <TouchableOpacity
           style={styles.button}
-          onPress={() => handleNavigate("pdfMS")}
+          onPress={() => handleNavigate("pdfMS",{uid:uid,type:"schoolManager"})}
         >
           <Icon name="file" size={90} color="black" />
 

@@ -32,8 +32,8 @@ const MainScreen = ({ route, navigation }) => {
   /////////////////////////////////////checking user type
 
 
-    const handleNavigate = (screenName) => {
-        navigation.navigate(screenName, vid);
+    const handleNavigate = (screenName,params) => {
+        navigation.navigate(screenName, params);
     }
     const handleProfile = () => {
         navigation.navigate('Profile');
@@ -82,7 +82,7 @@ const MainScreen = ({ route, navigation }) => {
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.button}
-            onPress={() => handleNavigate("pdf")}
+            onPress={() => handleNavigate("pdfMS",{userID,type:"volunteer"})}
           >
             <Icon name="file" size={90} color="black" />
 

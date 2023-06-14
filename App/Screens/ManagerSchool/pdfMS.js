@@ -9,29 +9,19 @@ import { FIREBASE_APP, FIREBASE_DB, FIREBASE_STORAGE } from "../../../firebaseCo
 import { getStorage, ref, getDownloadURL,uploadBytesResumable,listAll } from "firebase/storage";
 import { doc,setDoc,collection,getDocs,query } from "firebase/firestore";
 
+
 function Pdf({ route, navigation }) {
-  const vid = route.params;
+  const vid = route.params.uid;
+  
   const userID = String(vid); // user id
   const layers = userID.split('.');
   const [selectedFile, setSelectedFile] = useState([]);
-  const [userType, setUserType] = useState([]);
+  const [userType, setUserType] = useState(route.params.type);
   const [pdfCatagory,setCatagory] = useState("");
   const [fileName,setFileName] = useState("");
   const [blobFile,setBlobFile] = useState("");
   const [downloadAble,setDownloadable] = useState("");
-  useEffect(() => {
-    if (layers.length === 4) {
-      setUserType("volunteer"); // user is volunteer
-    } else if (layers.length === 3) {
-      setUserType("schoolManager"); // user is school manager
-    } else if (layers.length === 2) {
-      setUserType("regionalManager"); // user is regional manager
-    } else if (layers.length === 1) {
-      setUserType("admin"); // user is admin
-    } else {
-      console.log("valid user type not found");
-    }
-  }, [layers]);
+
   /////////////////////////////////////checking user type
   const [pdfList, setPdfList] = useState([]);
   const [modalVisible, setModalVisible] = useState(false);
@@ -42,25 +32,54 @@ function Pdf({ route, navigation }) {
   const [filteredPdfList, setFilteredPdfList] = useState([]);
   const [schoolList,setSchoolList] = useState([]);
   const fetchData = async () => {
-    const listref = ref(FIREBASE_STORAGE,'pdfs/');
-    listAll(listref).then((res)=>{
-      res.prefixes.forEach((folderRef)=>{
-        listAll(folderRef).then((itemsRef)=>{
-          itemsRef.items.forEach((itemRef)=>{
-            const newPdf = {
-              name: itemRef.name,
-              pdfUrl: itemRef.fullPath,
-              school: itemRef.parent.name,
-            };
-            // Update the PDF list
-            setPdfList((prevPdfList) => [...prevPdfList, newPdf]);
+    console.log(userType)
+    if(userType === 'volunteer'){
+      const listref = ref(FIREBASE_STORAGE,'pdfs/מתנדבים/');
+          listAll(listref).then((itemsRef)=>{
+            itemsRef.prefixes.forEach((itemRef)=>{
+              listAll(itemRef).then((Ref)=>{
+              Ref.items.forEach((Re)=>{
+                const newPdf = {
+                  name: Re.name,
+                  pdfUrl: Re.fullPath,
+                  school: Re.parent.name,
+                };
+                setPdfList((prevPdfList) => [...prevPdfList, newPdf]);
+              });
+              // Update the PDF list
+  
+            })
+            setSchoolList((prevSchollList)=>[...prevSchollList,itemRef.name]);
           })
+            })
+    }
+    if (userType === 'regionalManager' || userType === 'schoolManager'){
+      const listref = ref(FIREBASE_STORAGE,'pdfs/');
+      listAll(listref).then((res)=>{
+        res.prefixes.forEach((folderRef)=>{
+          listAll(folderRef).then((itemsRef)=>{
+            itemsRef.prefixes.forEach((itemRef)=>{
+              listAll(itemRef).then((Ref)=>{
+              Ref.items.forEach((Re)=>{
+                const newPdf = {
+                  name: Re.name,
+                  pdfUrl: Re.fullPath,
+                  school: Re.parent.name,
+                };
+                setPdfList((prevPdfList) => [...prevPdfList, newPdf]);
+              });
+              // Update the PDF list
+  
+            })
+            setSchoolList((prevSchollList)=>[...prevSchollList,itemRef.name]);
           })
-          setSchoolList((prevSchollList)=>[...prevSchollList,folderRef.name]);
-          
-      
-        })
-    })
+            })
+            
+          })
+      })
+    }
+    console.log(schoolList)
+    
   }
   // Fetch PDF data from server or local storage
   useEffect(() => {
@@ -110,7 +129,7 @@ function Pdf({ route, navigation }) {
           <Text style={styles.pdfDescription}>{item.description}</Text>
         </View>
 
-        {userType === "schoolManager" && (
+        {userType === "regionalManager" && (
         <TouchableOpacity onPress={deletePdf}>
           <Icon name="trash" size={30} color="red" />
         </TouchableOpacity>
@@ -196,7 +215,6 @@ function Pdf({ route, navigation }) {
   return (
     <View style={styles.container}>
        {/* Filter section */}
-    {userType === "schoolManager" && (
       <Picker
         selectedValue={selectedSchool}
         onValueChange={(itemValue) => {
@@ -210,7 +228,6 @@ function Pdf({ route, navigation }) {
           <Picker.Item label={school} value={school} key={school} />
         ))}
       </Picker>
-    )}
 
     {/* PDF list */}
       <FlatList
@@ -280,7 +297,7 @@ function Pdf({ route, navigation }) {
       </Modal>
 
     {/* Button to open the modal (visible only for school managers) */}
-    {userType === "schoolManager" && (
+    {userType === "regionalManager" && (
         <TouchableOpacity
           style={styles.addButton}
           onPress={() => setModalVisible(true)}
