@@ -9,7 +9,7 @@ import { query, where, collection, getDocs, Timestamp, setDoc,deleteDoc, getDoc 
 
 export default function App({route,navigation}) {
   const uid = route.params;
-  console.log(uid);
+  
   const [loading, setLoading] = useState(true);
   const [hours, setHours] = useState([]);
   const [totalHours, setTotalHours] = useState();
@@ -28,7 +28,6 @@ export default function App({route,navigation}) {
           setTotalHours(0);
         }
         else{
-          console.log("found hours");
           let hoursArray = new Array();
           let totHours = 0;
           querySnapshot.forEach(hour => {
@@ -61,8 +60,6 @@ export default function App({route,navigation}) {
   };
 
   fetchData();
-  console.log(name);
-  console.log(volunteerPlace);
   }, []);
 
   const volunteerName = "Mahmoud"; // Replace with the actual name variable
