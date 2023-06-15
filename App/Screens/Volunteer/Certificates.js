@@ -1,11 +1,67 @@
 import React from "react";
 import { StyleSheet, Text, View, Button, TouchableOpacity } from "react-native";
-import { useState } from "react";
+import { useState,useEffect } from "react";
 import { printToFileAsync } from "expo-print";
 import { shareAsync } from "expo-sharing";
 import Icon from "react-native-vector-icons/FontAwesome";
+import { FIREBASE_DB } from '../../../firebaseConfig';
+import { query, where, collection, getDocs, Timestamp, setDoc,deleteDoc, getDoc } from 'firebase/firestore';
 
-export default function App() {
+export default function App({route,navigation}) {
+  const uid = route.params;
+  
+  const [loading, setLoading] = useState(true);
+  const [hours, setHours] = useState([]);
+  const [totalHours, setTotalHours] = useState();
+  const [volunteerPlace,setVolunteerPlace] = useState("");
+  const [name,setName] = useState("")
+  useEffect(() => {
+    setTotalHours(0);
+    const fetchData = async () => {
+      try {
+
+        // Fetch hours data...
+        const q = query(collection(FIREBASE_DB, 'Hours'), where('VID', '==', uid));
+        const querySnapshot = await getDocs(q);
+        if (querySnapshot.empty){
+          console.log("didnt find any hours for this volunteer");
+          setTotalHours(0);
+        }
+        else{
+          let hoursArray = new Array();
+          let totHours = 0;
+          querySnapshot.forEach(hour => {
+            const timestamp = new Timestamp(hour.get('from').seconds, hour.get('from').nanoseconds);
+            totHours += hour.get('duration');
+          });
+          setTotalHours(totHours);
+        }
+      } catch (error) {
+        console.log("Error fetching hours data: ", error);
+      } finally {
+        setLoading(false);
+      }
+      try{
+        const q = query(collection(FIREBASE_DB, 'users'), where('layer', '==', uid));
+        const managerSnapshot = await getDocs(q);
+        if (managerSnapshot.empty) {
+          console.log("no data for the asked user.");
+        }
+        else{
+          managerSnapshot.forEach(user => {
+            setName(String(user.get('name')))
+            setVolunteerPlace(String(user.get('volunteerPlaceID')))
+      });
+      }
+    }
+    catch(error){
+      console.log("Error fetching name data: ", error);
+    }
+  };
+
+  fetchData();
+  }, []);
+
   const volunteerName = "Mahmoud"; // Replace with the actual name variable
     const currentDate = new Date().toLocaleDateString("en-US", {
       year: "numeric",
@@ -52,7 +108,7 @@ export default function App() {
       <div class="certificate">
         <h1>תעודת הוקרה למתנדב</h1>
         <p>תעודה זו מוענקת ל</p> 
-        <h2>${volunteerName}</h2>
+        <h2>${name}</h2>
         <p>אשר תרם את מזמנו וכישוריו כמתנדב ב</p>  
         <h3>לאורו נלך</h3>
        <p> ${currentDate} :בתאריך</p>
@@ -60,9 +116,6 @@ export default function App() {
     </body>
   </html>
 `;
-
-  const totalHours = 10;
-
   const cssStyles = `
   <style>
     body {
@@ -109,7 +162,7 @@ export default function App() {
       <div class="certificate">
         <h1>אישור שעות</h1>
         <p>תעודה זו מוענקת</p>
-        <h2>${volunteerName}</h2>
+        <h2>${name}</h2>
         <p>סיים בהצלחה </p>
         <h3>${totalHours} שעות התנדבות</h3>
         <p> ${currentDate} :בתאריך</p>
@@ -134,6 +187,14 @@ export default function App() {
     await shareAsync(file.uri);
   };
 
+
+  if (loading) {
+    return (
+      <View style={styles.container}>
+        <Text>Loading...</Text>
+      </View>
+    );
+  }
   return (
     <View style={styles.container}>
       <TouchableOpacity style={styles.button} onPress={pdfCertificate}>

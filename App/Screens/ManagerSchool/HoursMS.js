@@ -1,5 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet} from "react-native";
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+} from "react-native";
 import { Picker } from "@react-native-picker/picker";
 import { Ionicons } from "@expo/vector-icons";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
@@ -9,7 +15,7 @@ import { query, where, collection, getDocs, Timestamp, setDoc,deleteDoc, getDoc 
 
 const SelectBox = ({ options, selectedValue, onValueChange,onTouchEnd }) => {
   const pickerStyle = Platform.OS === "ios" ? styles.pickerIOS : styles.picker;
-  
+
   return (
     <Picker
       style={pickerStyle}
@@ -18,7 +24,7 @@ const SelectBox = ({ options, selectedValue, onValueChange,onTouchEnd }) => {
     >
       {options.map((option) => (
         <Picker.Item
-          key={option.value}
+          id={option.value}
           label={option.label}
           value={option.value}
         />
@@ -31,8 +37,6 @@ const SelectBox = ({ options, selectedValue, onValueChange,onTouchEnd }) => {
 const VolunteerHoursPage = ({route,navigation}) => {
   const uid = route.params;
   const currentDate = new Date();
-
-
   const [loading, setLoading] = useState(true);
   const [selectedYear, setSelectedYear] = useState(
     currentDate.getFullYear().toString()
@@ -101,8 +105,7 @@ const VolunteerHoursPage = ({route,navigation}) => {
 
 const handleDelete = async (date,documentReference) => {
   await deleteDoc(documentReference);
-
-  handleSearch(curUser);
+  removeItem(documentReference);
 };
 
   const handleSearch = async (curUser) => {
@@ -120,7 +123,7 @@ const handleDelete = async (date,documentReference) => {
           let hoursArray = new Array();
           let totHours = 0;
           querySnapshot.forEach(hour => {
-            console.log(hour);
+            console.log(typeof hour.ref);
             const timestamp = new Timestamp(hour.get('from').seconds, hour.get('from').nanoseconds);
             let date = timestamp.toDate();
             let mm = date.getMonth() + 1;
@@ -146,14 +149,6 @@ const handleDelete = async (date,documentReference) => {
   }
 
 
-  if (loading) {
-    return (
-      <View style={styles.container}>
-        <Text>Loading...</Text>
-      </View>
-    );
-  }
-
   return (
     <View style={styles.container}>
       {/* <View style={styles.inputContainer}> */}
@@ -171,6 +166,7 @@ const handleDelete = async (date,documentReference) => {
       <SelectBox 
         options={setUsers}
         selectedValue={curUser}
+        // onTouchEnd={handleSearch}
         onValueChange={(itemValue)=>{
           handleSearch(itemValue);
         }}
@@ -192,7 +188,7 @@ const handleDelete = async (date,documentReference) => {
       {/* <Text style={styles.totalHoursText}>Total Hours: {totalHours}</Text> */}
           <KeyboardAwareScrollView style={styles.hourSheetContainer}>
             {hours.filter(hour => hour['year'] == selectedYear && hour['month'] == selectedMonth).map(hour => (
-              <View key={hour['date'].seconds} style={styles.hourSheetItem}>
+              <View id={hour['date'].seconds} style={styles.hourSheetItem}>
               <Text style={styles.dayText}>Date: {hour['year']}/{hour['month']}/{hour['day']}
               </Text>
               <Text style={styles.hourText}>Hours: {hour['duration']}</Text>
@@ -208,7 +204,9 @@ const handleDelete = async (date,documentReference) => {
             </TouchableOpacity>
               </View>
             ))}
-
+          </KeyboardAwareScrollView>
+          
+          
     </View>
   );
 };
@@ -223,7 +221,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 10,
     backgroundColor: "#E8E8E8",
-    color: '#000000',
+    color: '#000000', // Replace with your desired text color
   },
   inputField: {
     flex: 1,

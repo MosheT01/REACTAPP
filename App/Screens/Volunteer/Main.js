@@ -32,27 +32,28 @@ const MainScreen = ({ route, navigation }) => {
   /////////////////////////////////////checking user type
 
 
-    const handleNavigate = (screenName) => {
-        navigation.navigate(screenName, vid);
+    const handleNavigate = (screenName,params) => {
+        navigation.navigate(screenName, params);
     }
-    const handleProfile = () => {
-        navigation.navigate('Profile');
-    }
+
+
+
+
     return (
       <View style={styles.container}>
-        <TouchableOpacity style={styles.profileButton} onPress={handleProfile}>
-          <Icon name="user-circle" size={50} color="#000" />
-        </TouchableOpacity>
-
+        
         <Image
           source={require("../../../App/assets/logo.webp")}
           style={styles.backgroundImage}
         />
+        <TouchableOpacity style={styles.profileButton} onPress={()=>handleNavigate('Profile',userID)}>
+          <Icon name="user-circle" size={50} color="#000" />
+        </TouchableOpacity>
 
         <View style={styles.buttonContainer}>
           <TouchableOpacity
             style={styles.button}
-            onPress={() => handleNavigate("Hours")}
+            onPress={() => handleNavigate("Hours",userID)}
           >
             <Icon name="clock-o" size={100} />
 
@@ -60,7 +61,7 @@ const MainScreen = ({ route, navigation }) => {
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.button}
-            onPress={() => handleNavigate("Event")}
+            onPress={() => handleNavigate("Event",userID)}
           >
             <Icon name="calendar" size={90} color="#000" />
 
@@ -69,7 +70,7 @@ const MainScreen = ({ route, navigation }) => {
 
           <TouchableOpacity
             style={styles.button}
-            onPress={() => handleNavigate("Certificates")}
+            onPress={() => handleNavigate("Certificates",userID)}
           >
             <Icon
               name="graduation-cap"
@@ -82,7 +83,7 @@ const MainScreen = ({ route, navigation }) => {
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.button}
-            onPress={() => handleNavigate("pdf")}
+            onPress={() => handleNavigate("pdfMS",{userID,type:"volunteer"})}
           >
             <Icon name="file" size={90} color="black" />
 

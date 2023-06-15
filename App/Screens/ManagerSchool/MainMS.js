@@ -4,11 +4,11 @@ import Icon from "react-native-vector-icons/FontAwesome";
 
 const MainScreen = ({ route, navigation }) => {
   const uid = route.params;
-  const handleNavigate = (screenName) => {
-    navigation.navigate(screenName, uid);
+  const handleNavigate = (screenName,params) => {
+    navigation.navigate(screenName, params);
   };
   const handleProfile = () => {
-    navigation.navigate("Profile");
+    navigation.navigate("Profile",uid);
   };
   return (
     <View style={styles.container}>
@@ -23,7 +23,7 @@ const MainScreen = ({ route, navigation }) => {
       <View style={styles.buttonContainer}>
         <TouchableOpacity
           style={styles.button}
-          onPress={() => handleNavigate("HoursMS")}
+          onPress={() => handleNavigate("HoursMS",uid)}
         >
           <Icon name="clock-o" size={100} />
 
@@ -48,7 +48,7 @@ const MainScreen = ({ route, navigation }) => {
 
         <TouchableOpacity
           style={styles.button}
-          onPress={() => handleNavigate("pdfMS")}
+          onPress={() => handleNavigate("pdfMS",{uid:uid,type:"schoolManager"})}
         >
           <Icon name="file" size={90} color="black" />
 

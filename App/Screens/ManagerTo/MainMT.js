@@ -49,7 +49,7 @@ const MainScreen = ({ route, navigation }) => {
 
         <TouchableOpacity
           style={styles.button}
-          onPress={() => handleNavigate("pdfMS")}
+          onPress={() => handleNavigate("pdfMS",{uid:uid,type:"regionalManager"})}
         >
           <Icon name="file" size={90} color="black" />
 
