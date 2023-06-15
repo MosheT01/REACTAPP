@@ -8,7 +8,7 @@ const MainScreen = ({ route, navigation }) => {
     navigation.navigate(screenName, params);
   };
   const handleProfile = () => {
-    navigation.navigate("Profile");
+    navigation.navigate("Profile",uid);
   };
   return (
     <View style={styles.container}>
@@ -23,7 +23,7 @@ const MainScreen = ({ route, navigation }) => {
       <View style={styles.buttonContainer}>
         <TouchableOpacity
           style={styles.button}
-          onPress={() => handleNavigate("HoursMS")}
+          onPress={() => handleNavigate("HoursMS",uid)}
         >
           <Icon name="clock-o" size={100} />
 

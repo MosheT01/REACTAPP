@@ -1,50 +1,50 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { View, Text, TextInput, Button, StyleSheet, Modal } from "react-native";
 import { Picker } from "@react-native-picker/picker";
 import Icon from "react-native-vector-icons/FontAwesome";
+import { query, where,getDoc,doc,collection,getDocs } from "firebase/firestore";
+import { FIREBASE_APP, FIREBASE_DB, FIREBASE_STORAGE } from "../../firebaseConfig";
 
-const ProfileScreen = () => {
-  const [firstName, setFirstName] = useState("firstName");
-  const [lastName, setLastName] = useState("lastName");
-  const [id, setID] = useState("id");
-  const [address, setAddress] = useState("address");
-  const [shirtSize, setShirtSize] = useState("S");
-  const [volunteerPlace, setvolunteerPlace] = useState("juro");
 
+
+const ProfileScreen = ({route,navigation}) => {
+  const uid = route.params;
+  console.log(uid);
+  const [volunteerPlace,setVolunteerPlace] = useState("");
+  const [name,setName] = useState("")
   const [modalVisible, setModalVisible] = useState(false);
   const [newValue, setNewValue] = useState("");
 
   const [shirtSizeModalVisible, setShirtSizeModalVisible] = useState(false);
 
-  const handleChange = () => {
-    // Handle the change and update the field value
-    if (modalVisible) {
-      switch (modalVisible) {
-        case "firstName":
-          setFirstName(newValue);
-          break;
-        case "lastName":
-          setLastName(newValue);
-          break;
-        case "id":
-          setID(newValue);
-          break;
-        case "address":
-          setAddress(newValue);
-          break;
-        default:
-          break;
-      }
+  const fetchData = async () => {
+    const q = query(collection(FIREBASE_DB, 'users'), where('layer', '==', uid));
+    const managerSnapshot = await getDocs(q);
+    if (managerSnapshot.empty) {
+      
     }
-    setModalVisible(false);
-  };
+    else{
+      managerSnapshot.forEach(user => {
+        setName(String(user.get('name')))
+        setVolunteerPlace(String(user.get('volunteerPlaceID')))
+      });
+      // setName(String(managerSnapshot.get('name'))); // user id
+      // setVolunteerPlace(String(managerSnapshot.get('volunteerPlaceID')));
+    }
 
-  const handleShirtSizeChange = () => {
-    setShirtSize(newValue);
-    setShirtSizeModalVisible(false);
-    setNewValue("");
-  };
-
+    // const docSnap = await getDoc(doc(FIREBASE_DB, 'users', layers[3]));
+    // if (docSnap.exists()) {
+    // }
+    console.log(name);
+    console.log("------------------\n---------------------\n")
+    console.log(volunteerPlace);
+  }
+  useEffect(() => {
+    // Your code here to fetch the PDF data, which should be an array of objects containing a name, photo URL, description, and pdfUrl for each PDF
+    // Example data:
+    console.log("useeffect");
+    fetchData();
+   }, []);
   return (
     <View style={styles.container}>
       <View style={styles.fieldContainer}>
@@ -61,73 +61,22 @@ const ProfileScreen = () => {
       <View style={styles.fieldContainer}>
         <Icon name="user" size={20} color="#000" style={styles.icon} />
         <Text style={styles.label}>שם פרטי:</Text>
-        <Button
-          title="שנה"
-          onPress={() => {
-            setModalVisible("firstName");
-            setNewValue(firstName);
-          }}
-        />
       </View>
 
-      <Text style={styles.value}>{firstName}</Text>
+      <Text style={styles.value}>{name.split()[0]}</Text>
 
       <View style={styles.fieldContainer}>
         <Icon name="user" size={20} color="#000" style={styles.icon} />
         <Text style={styles.label}>שם משפחה:</Text>
-        <Button
-          title="שנה"
-          onPress={() => {
-            setModalVisible("lastName");
-            setNewValue(lastName);
-          }}
-        />
       </View>
-      <Text style={styles.value}>{lastName}</Text>
-
-      <View style={styles.fieldContainer}>
-        <Icon name="id-card" size={20} color="#000" style={styles.icon} />
-        <Text style={styles.label}>תעודת זהות:</Text>
-        <Button
-          title="שנה"
-          onPress={() => {
-            setModalVisible("id");
-            setNewValue(id);
-          }}
-        />
-      </View>
-      <Text style={styles.value}>{id}</Text>
-
-      <View style={styles.fieldContainer}>
-        <Icon name="map-marker" size={20} color="#000" style={styles.icon} />
-        <Text style={styles.label}>כתובת:</Text>
-        <Button
-          title="שנה"
-          onPress={() => {
-            setModalVisible("address");
-            setNewValue(address);
-          }}
-        />
-      </View>
-      <Text style={styles.value}>{address}</Text>
-
-      <View style={styles.fieldContainer}>
-        <Text style={styles.label}>מידת חולצה:</Text>
-        <Button
-          title="שנה"
-          onPress={() => {
-            setShirtSizeModalVisible(true);
-            setNewValue(shirtSize);
-          }}
-        />
-      </View>
-      <Text style={styles.value}>{shirtSize}</Text>
+      <Text style={styles.value}>{name.split()[1]}</Text>
+    
       <View style={styles.fieldContainer}>
         <Icon name="map-marker" size={20} color="#000" style={styles.icon} />
         <Text style={styles.label}>מקום התנדבות: </Text>
       </View>
       <Text style={styles.value}>{volunteerPlace}</Text>
-      <Button title="שמירת שינויים" onPress={handleChange} />
+      
 
       <Modal visible={!!modalVisible} animationType="slide">
         <View style={styles.modalContainer}>
@@ -138,7 +87,7 @@ const ProfileScreen = () => {
             value={newValue}
             onChangeText={(text) => setNewValue(text)}
           />
-          <Button title="שמור" onPress={handleChange} />
+          
           <Button
             title="ביטול"
             onPress={() => {
@@ -149,29 +98,6 @@ const ProfileScreen = () => {
         </View>
       </Modal>
 
-      <Modal visible={shirtSizeModalVisible} animationType="slide">
-        <View style={styles.modalContainer}>
-          <Text style={styles.modalTitle}>שינוי ערך</Text>
-          <Picker
-            style={styles.picker}
-            selectedValue={newValue}
-            onValueChange={(itemValue) => setNewValue(itemValue)}
-          >
-            <Picker.Item label="S" value="S" />
-            <Picker.Item label="M" value="M" />
-            <Picker.Item label="L" value="L" />
-            <Picker.Item label="XL" value="XL" />
-          </Picker>
-          <Button title="שמור" onPress={handleShirtSizeChange} />
-          <Button
-            title="ביטול"
-            onPress={() => {
-              setShirtSizeModalVisible(false);
-              setNewValue("");
-            }}
-          />
-        </View>
-      </Modal>
     </View>
   );
 };

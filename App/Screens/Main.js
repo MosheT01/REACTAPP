@@ -1,19 +1,18 @@
 import React from 'react';
 import { View, Text, ImageBackground, TouchableOpacity, StyleSheet, Image } from 'react-native';
 
-const MainScreen = ({ navigation }) => {
-
-    const handleNavigate = (screenName) => {
-        navigation.navigate(screenName);
-    }
-    const handleProfile = () => {
-        navigation.navigate('Profile');
-    }
+const MainScreen = ({route,navigation }) => {
+    const uid = route.params;
+    console.log(uid);
+    const handleNavigate = (screenName,params) => {
+        console.log("sending: ", params);
+        navigation.navigate(screenName, params);
+      };
 
     
     return (
         <View style={styles.container}>
-            <TouchableOpacity style={styles.profileButton} onPress={handleProfile}>
+            <TouchableOpacity style={styles.profileButton} onPress={()=>handleNavigate('Profile_',uid)}>
                 <Image source={require('../../App/assets/th.jpeg')} style={styles.profileIcon} />
             </TouchableOpacity>
             <Image
