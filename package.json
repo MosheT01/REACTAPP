@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@react-native-community/datetimepicker": "6.7.3",
+    "@react-native-firebase/analytics": "^18.0.0",
     "@react-native-firebase/storage": "^18.0.0",
     "@react-native-picker/picker": "2.4.8",
     "@react-navigation/native": "^6.1.6",

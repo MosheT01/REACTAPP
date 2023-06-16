@@ -17,6 +17,7 @@ import Hours from "./App/Screens/Volunteer/Hours";
 
 /* manager */
 import MainM from "./App/Screens/Manager/MainM";
+import StorageM from "./App/Screens/Manager/StorageM";
 
 /* manager regional  */
 import MainMT from "./App/Screens/ManagerTo/MainMT";
@@ -53,6 +54,7 @@ export default function App() {
         <Stack.Screen name="Hours" component={Hours}></Stack.Screen>
         {/* manager */}
         <Stack.Screen name="MainM" component={MainM}></Stack.Screen>
+        <Stack.Screen name="StorageM" component={StorageM}></Stack.Screen>
         {/* manager regional  */}
         <Stack.Screen name="MainMT" component={MainMT}></Stack.Screen>
         <Stack.Screen name="MyRegion" component={MyRegion}></Stack.Screen>
