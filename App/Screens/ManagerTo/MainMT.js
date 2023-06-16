@@ -22,7 +22,7 @@ const MainScreen = ({ route, navigation }) => {
 
         <TouchableOpacity
           style={styles.button}
-          onPress={() => handleNavigate("EventMS",uid)}
+          onPress={() => handleNavigate("EventMT",uid)}
         >
           <Icon name="calendar" size={90} color="#000" />
 

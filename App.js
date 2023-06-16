@@ -20,7 +20,8 @@ import MainM from "./App/Screens/Manager/MainM";
 
 /* manager regional  */
 import MainMT from "./App/Screens/ManagerTo/MainMT";
-import MyRegion from "./App/Screens/ManagerTo/MyRegion"
+import MyRegion from "./App/Screens/ManagerTo/MyRegion";
+import EventMT from './App/Screens/ManagerTo/EventMT';
 /* manager school */
 import MainMS from "./App/Screens/ManagerSchool/MainMS";
 import EventMS from "./App/Screens/ManagerSchool/EventMS";
@@ -56,6 +57,7 @@ export default function App() {
         {/* manager regional  */}
         <Stack.Screen name="MainMT" component={MainMT}></Stack.Screen>
         <Stack.Screen name="MyRegion" component={MyRegion}></Stack.Screen>
+        <Stack.Screen name="EventMT" component={EventMT}></Stack.Screen>
 
         {/* manager school */}
         <Stack.Screen name="MainMS" component={MainMS}></Stack.Screen>
