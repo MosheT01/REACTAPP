@@ -8,35 +8,25 @@ const MainScreen = ({ route, navigation }) => {
   const handleNavigate = (screenName, params) => {
     navigation.navigate(screenName, params);
   };
-  const handleProfile = () => {
-    navigation.navigate("Profile");
-  };
   return (
     <View style={styles.container}>
-      <TouchableOpacity style={styles.profileButton} onPress={handleProfile}>
+      <TouchableOpacity style={styles.profileButton} onPress={()=>handleNavigate('Profile',uid)}>
         <Icon name="user-circle" size={50} color="#000" />
       </TouchableOpacity>
       <Image
-        source={require("../../../App/assets/logo.webp")}
+        source={require("../../assets/logo.webp")}
         style={styles.backgroundImage}
       />
 
       <View style={styles.buttonContainer}>
-        <TouchableOpacity
-          style={styles.button}
-          onPress={() => handleNavigate("HoursMS")}
-        >
-          <Icon name="clock-o" size={100} />
 
-          <Text style={styles.buttonText}>hours</Text>
-        </TouchableOpacity>
         <TouchableOpacity
           style={styles.button}
           onPress={() => handleNavigate("EventMS",uid)}
         >
           <Icon name="calendar" size={90} color="#000" />
 
-          <Text style={styles.buttonText}>Events</Text>
+          <Text style={styles.buttonText}>אירועים</Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={styles.button}
@@ -44,7 +34,7 @@ const MainScreen = ({ route, navigation }) => {
         >
           <Icon name="handshake-o" size={90} color="#000" />
 
-          <Text style={styles.buttonText}>My School</Text>
+          <Text style={styles.buttonText}>ניהול בתי ספר</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -53,7 +43,7 @@ const MainScreen = ({ route, navigation }) => {
         >
           <Icon name="file" size={90} color="black" />
 
-          <Text style={styles.buttonText}>PDF</Text>
+          <Text style={styles.buttonText}>מסמכים</Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={styles.button}
@@ -61,7 +51,7 @@ const MainScreen = ({ route, navigation }) => {
         >
           <Icon name="envelope" size={90} color="black" />
 
-          <Text style={styles.buttonText}>Messages</Text>
+          <Text style={styles.buttonText}>הודעות</Text>
         </TouchableOpacity>
       </View>
 
