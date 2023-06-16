@@ -519,10 +519,12 @@ function EventList({route, navigation}) {
             )}
           />
           <View style={styles.buttonContainer}>
-            <TouchableOpacity style={styles.cancelButton} onPress={() => setMarkAttendance(false)}>
-              <Text style={{color: 'white', fontSize: 15, backgroundColor: 'red', alignSelf: 'center', paddingTop: 10}} onPress={() => setMarkAttendance(false)}>Cancel</Text>
-            </TouchableOpacity>
-            <Button style={styles.button} title="Approve attendance" onPress={handleApproveAttendance}/>
+            <View style={styles.button}>
+              <Button title="Cancel" onPress={() => setMarkAttendance(false)}/>
+            </View>
+            <View style={styles.button}>
+              <Button style={styles.button} title="Approve attendance" onPress={handleApproveAttendance}/>
+            </View>
           </View>
         </SafeAreaView>
         </Modal>
@@ -641,7 +643,6 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   buttonContainer: {
-    // alignItems: 'center',
     flexDirection: "row",
     justifyContent: 'center',
     width: '100%',
@@ -681,9 +682,8 @@ const styles = StyleSheet.create({
   },
   cancelButton: {
     marginRight: 10,
-    paddingHorizontal: 30,
-    borderRadius: 2,
-    justifyContent: 'center',
+    width: 100,
+    borderRadius: 3,
     backgroundColor: 'red',
   },
   submitButton: {
