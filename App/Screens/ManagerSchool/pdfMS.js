@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from "react";
-import {View,Text,StyleSheet,FlatList,TouchableOpacity,Linking,Modal,TextInput,Button,window  
+import {View,Text,StyleSheet,FlatList,TouchableOpacity,Linking,Modal,TextInput,Button,window ,Alert 
 } from "react-native";
 import { Picker } from '@react-native-picker/picker'; // Updated import statement
 import Icon from "react-native-vector-icons/FontAwesome";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import * as DocumentPicker from 'expo-document-picker';
 import { FIREBASE_APP, FIREBASE_DB, FIREBASE_STORAGE } from "../../../firebaseConfig";
-import { getStorage, ref, getDownloadURL,uploadBytesResumable,listAll } from "firebase/storage";
+import { getStorage, ref, getDownloadURL,uploadBytesResumable,listAll,deleteObject } from "firebase/storage";
 import { doc,setDoc,collection,getDocs,query } from "firebase/firestore";
 
 
@@ -31,7 +31,10 @@ function Pdf({ route, navigation }) {
   const [selectedSchool, setSelectedSchool] = useState("");
   const [filteredPdfList, setFilteredPdfList] = useState([]);
   const [schoolList,setSchoolList] = useState([]);
+  const [extraData,setExtraData] = useState(false);
   const fetchData = async () => {
+    setSchoolList([]);
+    setPdfList([]);
     console.log(userType)
     if(userType === 'volunteer'){
       const listref = ref(FIREBASE_STORAGE,'pdfs/מתנדבים/');
@@ -65,6 +68,7 @@ function Pdf({ route, navigation }) {
                   name: Re.name,
                   pdfUrl: Re.fullPath,
                   school: Re.parent.name,
+                  ref:Re,
                 };
                 setPdfList((prevPdfList) => [...prevPdfList, newPdf]);
               });
@@ -79,6 +83,7 @@ function Pdf({ route, navigation }) {
       })
     }
     console.log(schoolList)
+
     
   }
   // Fetch PDF data from server or local storage
@@ -107,14 +112,18 @@ function Pdf({ route, navigation }) {
 
   };
 
-  const renderPdfItem = ({ item, index }) => {
-    const deletePdf = () => {
+  const renderPdfItem =  ({ item, index }) => {
+    const deletePdf = async () => {
       // Create a copy of the PDF list
-      const updatedPdfList = [...pdfList];
-      // Remove the PDF at the specified index
+      deleteObject(item.ref);
+      const updatedPdfList = [...filteredPdfList];
+      // // Remove the PDF at the specified index
       updatedPdfList.splice(index, 1);
-      // Update the PDF list
       setPdfList(updatedPdfList);
+      // console.log(pdfList);
+      // Update the PDF list
+      setFilteredPdfList(updatedPdfList)
+      // console.log(filteredPdfList);
     };
 
 
@@ -130,7 +139,9 @@ function Pdf({ route, navigation }) {
         </View>
 
         {userType === "regionalManager" && (
-        <TouchableOpacity onPress={deletePdf}>
+        <TouchableOpacity onPress={()=>Alert.alert('Error', 'Are you sure you want to delete the file?', [
+          {text: 'OK', onPress: () => deletePdf()},
+          {text:'Cancel'}])}>
           <Icon name="trash" size={30} color="red" />
         </TouchableOpacity>
       )}
@@ -183,11 +194,6 @@ function Pdf({ route, navigation }) {
     // setPdfList((prevPdfList) => [...prevPdfList, newPdf]);
 
     // Reset the input fields and close the modal
-    setPdfName("");
-    setPdfDescription("");
-    setPdfUrl("");
-    setModalVisible(false);
-    filterPdfList(selectedSchool);
 
   };
   const handleFileSelection = async () => {
@@ -234,6 +240,7 @@ function Pdf({ route, navigation }) {
         data={filteredPdfList}
         renderItem={renderPdfItem}
         keyExtractor={(item) => item.name}
+        extraData={extraData}
       />
 
       {/* Modal for adding a PDF */}
