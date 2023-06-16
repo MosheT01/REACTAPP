@@ -1,4 +1,4 @@
-import { Timestamp, query, where, collection, getDocs } from "firebase/firestore";
+import { Timestamp, query, where, collection, getDocs, getDoc, doc } from "firebase/firestore";
 import { FIREBASE_DB } from "../../../firebaseConfig";
 import React, { useState, useEffect } from "react";
 import { View, FlatList, Text, StyleSheet } from "react-native";
@@ -18,9 +18,16 @@ function EventList({route, navigation}) {
     try {
       let eventsArray = new Array();
       let reEventsArray = new Array();
-
       // building layerID to check for events from any layer(school manager or regional manager)
       const layers = uid.split('.');
+
+      let volunteerPlace = "";
+      console.log("uid", layers[3]);
+      const userSnapShot = await getDoc(doc(collection(FIREBASE_DB, 'users'), layers[3]));
+      if (userSnapShot.exists()){
+        volunteerPlace = userSnapShot.get('volunteerPlaceID');
+        console.log("volunteerPlace: ", volunteerPlace);
+      }
       // to only show if SM accepted: for (i = layers.length - 1; i <= layers.length; i++)
       for (i = 1 ; i <= 3; i++){ // run for all layers
         let layerID = layers[0];
@@ -44,7 +51,9 @@ function EventList({route, navigation}) {
             let eventSec = timestamp.seconds;
             let nowSec = now.getTime() / 1000;
 
-            if ((repeat === 0 && nowSec > eventSec + (eventDuration * 3600) + 86400) || event.get('approved')){
+            // console.log(volunteerPlace , "==", event.id);
+
+            if ((repeat !== 0 && volunteerPlace !== event.id) || (repeat === 0 && nowSec > eventSec + (eventDuration * 3600) + 86400) || event.get('approved')){
               console.log("event irrelevent");
             }
             else{

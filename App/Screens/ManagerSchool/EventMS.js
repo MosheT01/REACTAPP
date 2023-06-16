@@ -11,6 +11,9 @@ import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view
 
 function EventList({route, navigation}) {
   const uid = route.params;
+  // building layerID to check for events from any layer(school manager or regional manager)
+  const layers = uid.split('.');
+  
   const [students, setStudents] = useState([
     {
       title: 'Student List',
@@ -69,13 +72,11 @@ function EventList({route, navigation}) {
         let eventsArray = new Array();
         let reEventsArray = new Array();
 
-        // building layerID to check for events from any layer(school manager or regional manager)
-        const layers = uid.split('.');
         // to only show if SM accepted: for (i = layers.length - 1; i <= layers.length; i++)
         for (i = 1 ; i <= 3; i++){ // run for all layers
           let layerID = layers[0];
           for (j = 1; j < i; j++){
-            layerID += "." + layers[j];
+            layerID += "." + layers[j]; 
           }
 
           let q = query(collection(FIREBASE_DB, 'events'), where('layerID', '==', layerID)); // the query
@@ -276,7 +277,8 @@ function EventList({route, navigation}) {
   
   const handleMarkAttendance = async (event) => {
     students.at(0).data = [];
-    const getStudentsQ = query(collection(FIREBASE_DB, 'users'), where('manager', '==', uid));
+    console.log('eventID: ', event.eventID);
+    const getStudentsQ = query(collection(FIREBASE_DB, 'users'), where('volunteerPlaceID', '==', event.eventID));
     let querySnapshot = await getDocs(getStudentsQ);
 
     if (querySnapshot.empty){
@@ -509,6 +511,7 @@ function EventList({route, navigation}) {
         <SafeAreaView style={styles.container}>
           <SectionList
             sections={students}
+            style={{marginBottom: 10}}
             keyExtractor={(item) => item.uid}
             renderItem={item => renderStudentItem(item)}
             renderSectionHeader={({ section: { title } }) => (
@@ -516,6 +519,9 @@ function EventList({route, navigation}) {
             )}
           />
           <View style={styles.buttonContainer}>
+            <TouchableOpacity style={styles.cancelButton}>
+              <Text style={{color: 'white', fontSize: 15, backgroundColor: 'red', alignSelf: 'center', paddingTop: 10}} onPress={() => setMarkAttendance(false)}>Cancel</Text>
+            </TouchableOpacity>
             <Button style={styles.button} title="Approve attendance" onPress={handleApproveAttendance}/>
           </View>
         </SafeAreaView>
@@ -635,10 +641,9 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   buttonContainer: {
+    // alignItems: 'center',
     flexDirection: "row",
     justifyContent: 'center',
-    alignItems: 'center',
-    alignSelf: 'center',
     width: '100%',
     marginBottom: 20,
   },
@@ -675,7 +680,10 @@ const styles = StyleSheet.create({
     borderRadius: 5,
   },
   cancelButton: {
-    backgroundColor: "#ccc",
+    marginRight: 10,
+    paddingHorizontal: 30,
+    borderRadius: 2,
+    backgroundColor: 'red',
   },
   submitButton: {
     backgroundColor: "#00bfff",

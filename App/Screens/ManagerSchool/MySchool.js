@@ -11,7 +11,7 @@ const GroupList = ({route, navigation}) => {
   const [groups, setGroups] = useState([]);
   const [selectedGroup, setSelectedGroup] = useState(null);
   const [students, setStudents] = useState([]);
-  const [refresh, setRefresh] = useState();
+  const [refresh, setRefresh] = useState(false);
   const [showAddStudent, setShowAddStudent] = useState(false); // State variable to control the visibility of the "Add Student" section
 
   const getAvailableStudents = () => {
@@ -23,22 +23,23 @@ const GroupList = ({route, navigation}) => {
 
   const handleAddStudent = () => {
     const selectedStudents = students.filter((student) => student.selected);
-    selectedStudents.forEach((student) => {
-      updateDoc(doc(collection(FIREBASE_DB, 'users'), student.id), {volunteerPlaceID: selectedGroup.id})
+    selectedStudents.forEach(async (student) => {
+      await updateDoc(doc(collection(FIREBASE_DB, 'users'), student.id), {volunteerPlaceID: selectedGroup.id})
     })
     setSelectedGroup(null);
     setShowAddStudent(false);
     fetchData();
   };
 
-  const refreshStudentFlatList = () => {
-    setRefresh((prevRefresh) => !prevRefresh);
-  };
-
-  const handleRemoveStudent = (studentId) => {
+  const handleRemoveStudent = async (studentId) => {
     const selectedStudent = selectedGroup.students.filter((student) => student.id === studentId);
     console.log("removing student ", selectedStudent.at(0).id, " from group ", selectedGroup.id);
-    updateDoc(doc(collection(FIREBASE_DB, 'users'), selectedStudent.at(0).id), {volunteerPlaceID: null});
+    try {
+      await updateDoc(doc(collection(FIREBASE_DB, 'users'), selectedStudent.at(0).id), {volunteerPlaceID: null});
+    }
+    catch(error) {
+      Alert.alert('Error', 'an error has accord removing this student from this group. please check your internet connection', [{title: 'OK', onPress: console.log("OK presssed")}]);
+    }
     fetchData();
   };
 
@@ -152,22 +153,25 @@ const GroupList = ({route, navigation}) => {
         })
         setGroups(collectGroups);
         setStudents(collectStudents);
-        console.log(groups);
-        console.log(students);
       }
     }
-    setLoading(false);
   }
 
   useEffect(() => {
     fetchData();
-    setLoading(false);
-    setRefresh(true);
-  }, []);
+  }, [loading]);
 
-  if (loading){
-    return (<Text>Loading...</Text>)
-  }
+  useEffect(() => {
+    if (selectedGroup !== null){
+      const selectedGroupID = selectedGroup.id;
+      setSelectedGroup(null);
+      groups.forEach((group) => {
+        if (group.id === selectedGroup.id){
+          setSelectedGroup(group);
+        }
+      })
+    }
+  }, [groups])
 
   return (
     <View style={styles.container}>
@@ -201,6 +205,7 @@ const GroupList = ({route, navigation}) => {
               data={selectedGroup.students}
               renderItem={renderStudent}
               keyExtractor={(item) => item.id.toString()}
+              extraData={selectedGroup} // Trigger re-render when refresh value changes
             />
             <View style={styles.line}></View>
           </View>
