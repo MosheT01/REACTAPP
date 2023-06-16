@@ -5,6 +5,7 @@ import {
   TextInput,
   TouchableOpacity,
   StyleSheet,
+  Alert,
 } from "react-native";
 import { Picker } from "@react-native-picker/picker";
 import { Ionicons } from "@expo/vector-icons";
@@ -195,11 +196,10 @@ const handleDelete = async (date,documentReference) => {
 
             <TouchableOpacity
               style={styles.deleteButton}
-              onPress={() =>{
-                handleDelete( hour['date'],hour['documentReference']);
-              }
-              }
-              >
+              onPress={() =>{Alert.alert('Are you sure?', 'Are you sure you want to delete this hours?', [
+                {text: 'OK', onPress: () => handleDelete( hour['date'],hour['documentReference'])},
+                {text:'Cancel'}])}
+              }>
               <Ionicons name="trash-outline" size={24} color="white" />
             </TouchableOpacity>
               </View>
