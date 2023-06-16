@@ -1,119 +1,234 @@
-import React, { useState } from 'react';
-import { View, Text, Alert, FlatList, TouchableOpacity, Modal, TextInput, Button, StyleSheet } from 'react-native';
+import React, { useState, useEffect } from "react";
+import { View, Text, TouchableOpacity, FlatList, Modal, SafeAreaView, StyleSheet, Alert, Dimensions } from "react-native";
+import { FIREBASE_DB } from "../../../firebaseConfig";
+import { query, where, collection, getDocs, updateDoc, doc } from 'firebase/firestore';
 
-const ManagersScreen = () => {
-  const [managers, setManagers] = useState([
-    { id: 1, name: 'John Doe', email: 'johndoe@example.com', password: '123456' },
-    { id: 2, name: 'Jane Smith', email: 'janesmith@example.com', password: 'abcdef' },
-  ]);
-  const [modalVisible, setModalVisible] = useState(false);
-  const [newManagerName, setNewManagerName] = useState('');
-  const [newManagerEmail, setNewManagerEmail] = useState('');
-  const [newManagerPassword, setNewManagerPassword] = useState('');
+const GroupList = ({route, navigation}) => {
+  const uid = route.params;
+  const screenHeight = Dimensions.get('screen').height;
+  const [loading, setLoading] = useState(true);
+  const [groupsHeight, setGroupsHeight] = useState(180);
+  const [groups, setGroups] = useState([]);
+  const [selectedGroup, setSelectedGroup] = useState(null);
+  const [students, setStudents] = useState([]);
+  const [refresh, setRefresh] = useState(false);
+  const [showAddStudent, setShowAddStudent] = useState(false); // State variable to control the visibility of the "Add Student" section
 
-  const handleDeleteManager = (id) => {
-    Alert.alert('Confirmation', 'Are you sure you want to delete this manager?', [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Delete', style: 'destructive', onPress: () => deleteManager(id) },
-    ]);
+  const getAvailableStudents = () => {
+    const usedStudentIds = groups.flatMap((group) =>
+      group.students.map((student) => student.id)
+    );
+    return students.filter((student) => !usedStudentIds.includes(student.id));
   };
 
-  const deleteManager = (id) => {
-    setManagers((prevManagers) => prevManagers.filter((manager) => manager.id !== id));
+  const handleAddStudent = () => {
+    const selectedStudents = students.filter((student) => student.selected);
+    selectedStudents.forEach(async (student) => {
+      await updateDoc(doc(collection(FIREBASE_DB, 'users'), student.id), {volunteerPlaceID: selectedGroup.id})
+    })
+    setSelectedGroup(null);
+    setShowAddStudent(false);
+    fetchData();
   };
 
-  const handleAddManager = () => {
-    setModalVisible(true);
-  };
-
-  const addManager = () => {
-    if (
-      newManagerName.trim() === '' ||
-      newManagerEmail.trim() === '' ||
-      newManagerPassword.trim() === ''
-    ) {
-      Alert.alert('Error', 'Please enter a valid name, email, and password');
-      return;
+  const handleRemoveStudent = async (studentId) => {
+    const selectedStudent = selectedGroup.students.filter((student) => student.id === studentId);
+    console.log("removing student ", selectedStudent.at(0).id, " from group ", selectedGroup.id);
+    try {
+      await updateDoc(doc(collection(FIREBASE_DB, 'users'), selectedStudent.at(0).id), {volunteerPlaceID: null});
     }
-
-    const newManager = {
-      id: managers.length + 1,
-      name: newManagerName.trim(),
-      email: newManagerEmail.trim(),
-      password: newManagerPassword.trim(),
-    };
-
-    setManagers((prevManagers) => [...prevManagers, newManager]);
-    setNewManagerName('');
-    setNewManagerEmail('');
-    setNewManagerPassword('');
-    setModalVisible(false);
+    catch(error) {
+      Alert.alert('Error', 'an error has accord removing this student from this group. please check your internet connection', [{title: 'OK', onPress: console.log("OK presssed")}]);
+    }
+    fetchData();
   };
 
-  const cancelAddManager = () => {
-    setNewManagerName('');
-    setNewManagerEmail('');
-    setNewManagerPassword('');
-    setModalVisible(false);
+  const handleToggleSelect = (studentID) => {
+    setStudents((prevStudents) =>
+      prevStudents.map((student) => {
+        if (student.id === studentID) {
+          return {
+            ...student,
+            selected: !student.selected,
+          };
+        }
+        return student;
+      })
+    );
   };
 
-  const renderManagerItem = ({ item }) => (
-    <View style={styles.managerItemContainer}>
-      <Text style={styles.managerName}>{item.name}</Text>
-      <Text style={styles.managerEmail}>{item.email}</Text>
-      <TouchableOpacity onPress={() => handleDeleteManager(item.id)} style={styles.deleteButton}>
-        <Text style={styles.deleteButtonText}>Delete</Text>
+  const renderGroup = ({ item }) => (
+    <TouchableOpacity
+      style={{
+        flexDirection: "row",
+        justifyContent: "space-between",
+        marginBottom: 10,
+        paddingVertical: 10,
+        paddingHorizontal: 15,
+        backgroundColor: "#E0E0E0",
+        borderRadius: 5,
+      }}
+      onPress={() => setSelectedGroup(item)}
+    >
+      <Text>{item.name}</Text>
+      <Text>{item.students.length} Students</Text>
+    </TouchableOpacity>
+  );
+
+  const renderStudent = ({ item }) => (
+    <View
+      style={{
+        flexDirection: "row",
+        justifyContent: "space-between",
+        marginBottom: 10,
+        paddingVertical: 10,
+        paddingHorizontal: 15,
+        backgroundColor: "#F5F5F5",
+        borderRadius: 5,
+      }}
+    >
+      <Text>{item.name}</Text>
+      <TouchableOpacity
+        style={{ backgroundColor: "red", padding: 5, borderRadius: 5 }}
+        onPress={() => handleRemoveStudent(item.id)}
+      >
+        <Text style={{ color: "white" }}>Remove</Text>
       </TouchableOpacity>
     </View>
   );
 
+  const renderAddStudent = ({ item }) => (
+    <TouchableOpacity
+      style={{
+        flexDirection: "row",
+        justifyContent: "space-between",
+        marginBottom: 10,
+        paddingVertical: 10,
+        paddingHorizontal: 15,
+        backgroundColor: "#E0E0E0",
+        borderRadius: 5,
+      }}
+      onPress={() => handleToggleSelect(item.id)}
+    >
+      <Text>{item.name}</Text>
+      <Text>{item.selected ? "Selected" : "Not Selected"}</Text>
+    </TouchableOpacity>
+  );
+
+  const fetchData = async () => {
+    const groupQuery = query(collection(FIREBASE_DB, 'events'), where('layerID', '==', uid));
+    const groupsSnapShot = await getDocs(groupQuery);
+    if (groupsSnapShot.empty){
+      Alert.alert('No volunteering places(Groups) found', 'add a group by creating a re-accoring event in the events screen', [{text: 'OK', onPress: () => {console.log("OK pressed")}}]);
+    }
+    else{
+      let collectGroups = new Array();
+      groupsSnapShot.forEach((group) => {
+        if (group.get('repeat') !== 0){
+          console.log("pushing event: ", group.id);
+          collectGroups.push({id: group.id, name: group.get('title'), students: new Array()});
+        }
+      })
+      const studentsQuery = query(collection(FIREBASE_DB, 'users'), where('manager', '==', uid));
+      const studentsSnapShot = await getDocs(studentsQuery);
+      if (studentsSnapShot.empty){
+        Alert.alert('no students found', 'make sure your students entered the system using your school code(in your profile)', [{text: 'OK', onPress: () => {console.log("OK pressed")}}]);
+      }
+      else{
+        let collectStudents = new Array();
+        console.log("scanning students");
+        studentsSnapShot.forEach((student) => {
+          const volunteerPlaceID = student.get('volunteerPlaceID');
+          const studentObj = {id: student.id, name: student.get('name'), volunteerPlace: volunteerPlaceID, selected: false};
+          let hasGroup = false;
+          collectGroups.forEach((group) => {
+            if (group.id === volunteerPlaceID){
+              group.students.push(studentObj);
+              hasGroup = true;
+            }
+          });
+          if (!hasGroup){
+            collectStudents.push(studentObj);
+          }
+        })
+        setGroups(collectGroups);
+        setStudents(collectStudents);
+      }
+    }
+  }
+
+  useEffect(() => {
+    fetchData();
+  }, [loading]);
+
+  useEffect(() => {
+    if (selectedGroup !== null){
+      const selectedGroupID = selectedGroup.id;
+      setSelectedGroup(null);
+      groups.forEach((group) => {
+        if (group.id === selectedGroup.id){
+          setSelectedGroup(group);
+        }
+      })
+    }
+  }, [groups])
+
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Managers</Text>
-
-      <FlatList
-        data={managers}
-        renderItem={renderManagerItem}
-        keyExtractor={(item) => item.id.toString()}
-        style={styles.list}
-      />
-
-      <TouchableOpacity onPress={handleAddManager} style={styles.addButton}>
-        <Text style={styles.addButtonText}>Add New Manager</Text>
+      <TouchableOpacity style={styles.addStudentButton} onPress={() => {
+        if (selectedGroup===null){
+          Alert.alert('No group selected', 'select a group by pressing on the group you want to add students to', [{text: 'OK', onPress: () => console.log("OK pressed")}]);
+        } 
+        else{setShowAddStudent(true)}
+        }}>
+        <Text style={{ color: "white", fontSize: 16, textAlign: "center", top: 9, }}>Add Student</Text>
       </TouchableOpacity>
+      <View style={{maxHeight: '23%'}} onLayout={(event) => {const {x, y, width, height} = event.nativeEvent.layout; setGroupsHeight(height)}}>
+        <Text style={{ fontSize: 20, marginBottom: 5, marginTop: 5 }}>Groups</Text>
+        <FlatList
+          data={groups}
+          renderItem={renderGroup}
+          keyExtractor={(item) => item.id.toString()}
+          style={{flexGrow: 0}}
+        />
+        <View style={styles.line}></View>
+      </View>
 
-      <Modal visible={modalVisible} animationType="slide" transparent>
-        <View style={styles.modalContainer}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Add New Manager</Text>
-
-            <TextInput
-              placeholder="Name"
-              value={newManagerName}
-              onChangeText={(text) => setNewManagerName(text)}
-              style={styles.input}
+      <View>
+        {selectedGroup && (
+          <View>
+            <Text style={{ fontSize: 20, marginBottom: 10 }}>
+              Students in {selectedGroup.name}
+            </Text>
+            <FlatList
+              style={{height: screenHeight - groupsHeight - 225}}
+              data={selectedGroup.students}
+              renderItem={renderStudent}
+              keyExtractor={(item) => item.id.toString()}
+              extraData={selectedGroup} // Trigger re-render when refresh value changes
             />
-
-            <TextInput
-              placeholder="Email"
-              value={newManagerEmail}
-              onChangeText={(text) => setNewManagerEmail(text)}
-              style={styles.input}
-              keyboardType="email-address"
-            />
-
-            <TextInput
-              placeholder="Password"
-              value={newManagerPassword}
-              onChangeText={(text) => setNewManagerPassword(text)}
-              style={styles.input}
-              secureTextEntry
-            />
-
-            <Button title="Add" onPress={addManager} />
-            <Button title="Cancel" onPress={cancelAddManager} color="red" />
+            <View style={styles.line}></View>
           </View>
-        </View>
+        )}
+      </View>
+
+      <Modal visible={showAddStudent} animationType="slide">
+        <SafeAreaView style={styles.container}>
+          <TouchableOpacity style={styles.confirmButton} onPress={() => handleAddStudent()}>
+            <Text style={{ color: "white", fontSize: 16, textAlign: "center", top: 9, }}>Confirm</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.cancelButton} onPress={() => setShowAddStudent(false)}>
+            <Text style={{ color: "white", fontSize: 16, textAlign: "center", top: 9, }}>Cancel</Text>
+          </TouchableOpacity>
+          <View style={{height: screenHeight - 180}}>
+            <Text style={{ fontSize: 20, marginBottom: 10 }}>Add Student</Text>
+            <FlatList
+              data={getAvailableStudents()}
+              renderItem={renderAddStudent}
+              keyExtractor={(item) => item.id.toString()}
+            />
+          </View>
+        </SafeAreaView>
       </Modal>
     </View>
   );
@@ -123,75 +238,41 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 16,
+    backgroundColor: '#fff',
   },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 16,
+  addStudentButton: {
+    height: 40, 
+    width: '100%', 
+    backgroundColor: 'blue', 
+    position: 'absolute', 
+    bottom: 17, 
+    alignSelf: 'center', 
+    borderRadius: 5,
   },
-  list: {
-    marginBottom: 16,
+  confirmButton: {
+    height: 42,
+    width: '100%',
+    backgroundColor: '#08a50a',
+    position: 'absolute',
+    bottom: 60, 
+    alignSelf: 'center', 
+    borderRadius: 5,
   },
-  managerItemContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
+  cancelButton: {
+    height: 42,
+    width: '100%', 
+    backgroundColor: '#ff2a2a', 
+    position: 'absolute', 
+    bottom: 13, 
+    alignSelf: 'center', 
+    borderRadius: 5,
   },
-  managerName: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    flex: 1,
-  },
-  managerEmail: {
-    fontSize: 14,
-    color: 'gray',
-    flex: 1,
-  },
-  deleteButton: {
-    backgroundColor: 'red',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 4,
-  },
-  deleteButtonText: {
-    color: 'white',
-    fontWeight: 'bold',
-  },
-  addButton: {
-    backgroundColor: 'blue',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 4,
-    alignSelf: 'center',
-  },
-  addButtonText: {
-    color: 'white',
-    fontWeight: 'bold',
-  },
-  modalContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-  },
-  modalContent: {
-    backgroundColor: 'white',
-    padding: 16,
-    marginHorizontal: 32,
-    borderRadius: 8,
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 16,
-  },
-  input: {
-    marginBottom: 12,
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderColor: 'gray',
-    borderWidth: 1,
-    borderRadius: 4,
+  line: {
+    marginBottom: 10,
+    width: "100%",
+    height: 2,
+    backgroundColor: "black",
   },
 });
 
-export default ManagersScreen;
+export default GroupList;

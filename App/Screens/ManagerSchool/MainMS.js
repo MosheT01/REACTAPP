@@ -31,7 +31,7 @@ const MainScreen = ({ route, navigation }) => {
         </TouchableOpacity>
         <TouchableOpacity
           style={styles.button}
-          onPress={() => handleNavigate("EventMS",uid)}
+          onPress={() => handleNavigate("EventMS", uid)}
         >
           <Icon name="calendar" size={90} color="#000" />
 
@@ -39,7 +39,7 @@ const MainScreen = ({ route, navigation }) => {
         </TouchableOpacity>
         <TouchableOpacity
           style={styles.button}
-          onPress={() => handleNavigate("MySchool")}
+          onPress={() => handleNavigate("MySchool", uid)}
         >
           <Icon name="handshake-o" size={90} color="#000" />
 
