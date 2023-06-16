@@ -1,83 +1,49 @@
 import React from "react";
-import {
-  ScrollView,
-  Text,
-  View,
-  ImageBackground,
-  TouchableOpacity,
-  StyleSheet,
-  Image,
-} from "react-native";
+import { View, Text, TouchableOpacity, StyleSheet, Image } from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome";
 
-const MainScreen = ({ navigation }) => {
-  const handleNavigate = (screenName) => {
-    navigation.navigate(screenName);
+const MainScreen = ({ route, navigation }) => {
+  const {uid, counter, userDocID} = route.params;
+  console.log("doc at mainMT: ", userDocID);
+  const handleNavigate = (screenName, params) => {
+    navigation.navigate(screenName, params);
   };
-
-  const handleProfile = () => {
-    navigation.navigate("Profile");
-  };
-
-  const handleTransport = () => {
-    navigation.navigate("Transport");
-  };
-
   return (
-    <ScrollView contentContainerStyle={styles.container}>
-      <TouchableOpacity style={styles.profileButton} onPress={handleProfile}>
+    <View style={styles.container}>
+      <TouchableOpacity style={styles.profileButton} onPress={()=>handleNavigate('Profile',uid)}>
         <Icon name="user-circle" size={50} color="#000" />
       </TouchableOpacity>
       <Image
-        source={require("../../../App/assets/logo.webp")}
+        source={require("../../assets/logo.webp")}
         style={styles.backgroundImage}
       />
 
       <View style={styles.buttonContainer}>
+
         <TouchableOpacity
           style={styles.button}
-          onPress={() => handleNavigate("HoursMan")}
+          onPress={() => handleNavigate("StorageM",uid)}
         >
-          <Icon name="clock-o" size={100} />
+          <Icon name="database" size={90} color="#000" />
 
-          <Text style={styles.buttonText}>hours</Text>
+          <Text style={styles.buttonText}>מחיקת דאטה בייס</Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={styles.button}
-          onPress={() => handleNavigate("EventMS")}
-        >
-          <Icon name="calendar" size={90} color="#000" />
-
-          <Text style={styles.buttonText}>Events</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.button}
-          onPress={() => handleNavigate("Volunteer")}
+          onPress={() => handleNavigate("MyRegion",{uid:uid,counter:counter, userDocID: userDocID})}
         >
           <Icon name="handshake-o" size={90} color="#000" />
 
-          <Text style={styles.buttonText}>Schools Manager</Text>
+          <Text style={styles.buttonText}>ניהול בתי ספר</Text>
         </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.button}
-          onPress={() => handleNavigate("Certificates")}
-        >
-          <Icon
-            name="graduation-cap"
-            type="font-awesome"
-            size={90}
-            color="black"
-          />
 
-          <Text style={styles.buttonText}>Certificates</Text>
-        </TouchableOpacity>
         <TouchableOpacity
           style={styles.button}
-          onPress={() => handleNavigate("pdf")}
+          onPress={() => handleNavigate("pdfMS",{uid:uid,type:"regionalManager"})}
         >
           <Icon name="file" size={90} color="black" />
 
-          <Text style={styles.buttonText}>PDF</Text>
+          <Text style={styles.buttonText}>מסמכים</Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={styles.button}
@@ -85,50 +51,38 @@ const MainScreen = ({ navigation }) => {
         >
           <Icon name="envelope" size={90} color="black" />
 
-          <Text style={styles.buttonText}>Messages</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.button} onPress={handleTransport}>
-          <Icon name="car" size={90} color="black" />
-
-          <Text style={styles.buttonText}>Transport</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.button} onPress={handleTransport}>
-          <Icon name="bar-chart" size={80} color="#000" />
-
-          <Text style={styles.buttonText}>Statistics</Text>
+          <Text style={styles.buttonText}>הודעות</Text>
         </TouchableOpacity>
       </View>
 
       <View style={styles.footerContainer}>
-        <Text style={styles.footerText}>All rights reserved</Text>
+        <View style={styles.line} />
       </View>
-    </ScrollView>
+    </View>
   );
 };
-
 const styles = StyleSheet.create({
   container: {
-    flexGrow: 1,
+    flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#ADD8E6",
+    backgroundColor: "#f0f0f0",
   },
 
   profileButton: {
     position: "absolute",
     top: 20,
     right: 20,
-    zIndex: 1,
   },
   profileIcon: {
     width: 50,
     height: 50,
   },
   backgroundImage: {
-    height: 200,
-    width: 300,
+    height: 100,
+    width: 150,
+    marginBottom: 30,
+    marginTop: 30,
   },
   buttonContainer: {
     flex: 3,
@@ -143,7 +97,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     width: 150,
     height: 150,
-    backgroundColor: "#f0f0f0",
+    backgroundColor: "#D1D5DB",
     borderRadius: 10,
   },
   buttonText: {
@@ -151,11 +105,22 @@ const styles = StyleSheet.create({
     marginTop: 5,
   },
   footerContainer: {
-    marginTop: 20,
+    position: "absolute",
+    bottom: 0,
+    width: "100%",
+    height: 50,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#f0f0f0",
   },
   footerText: {
-    fontWeight: "bold",
     color: "gray",
+  },
+  line: {
+    marginBottom: 20,
+    width: "100%",
+    height: 1,
+    backgroundColor: "gray",
   },
 });
 

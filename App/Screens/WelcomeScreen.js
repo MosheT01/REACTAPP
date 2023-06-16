@@ -31,7 +31,10 @@ const LoginScreen = ({ navigation }) => {
             counter:docSnap.get('numberOfUsers'),
             userDocID: userCredential.user.uid,
           }); // user is regional manager
-          else if (layers.length === 1) navigation.navigate("MainM"); // user is admin
+          else if (layers.length === 1) navigation.navigate("MainM",{uid:userID,
+            counter:docSnap.get('numberOfUsers'),
+            userDocID: userCredential.user.uid,
+          }); // user is regional manager); // user is admin
           else console.log("valid user type not found");
         } else {
           console.log("ERROR: user data not found");
