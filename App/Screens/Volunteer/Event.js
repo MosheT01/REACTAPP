@@ -11,6 +11,15 @@ function EventList({route, navigation}) {
   const [reEvents, setReEvents] = useState([]);
   const [date, setDate] = useState();
 
+  const options = {
+    timeZone: 'Asia/Jerusalem', // Set the time zone to Israel (Asia/Jerusalem)
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: 'numeric',
+  };
+
   const fetchData = async () => {
     const now = new Date(Date.now());
     now.setSeconds(0)
@@ -63,6 +72,7 @@ function EventList({route, navigation}) {
               }
 
               let eventDate = new Date(eventSec * 1000);
+              
 
               const eventObj = {
                 eventID: event.id,
@@ -118,7 +128,7 @@ const renderEvents = ({ item }) => {
       <View style={styles.eventDetails}>
         <Text style={styles.eventTitle}>{item.title}</Text>
         <Text style={styles.eventDescription}>{item.description}</Text>
-        <Text style={styles.eventDate}>{item.date}, {item.time}</Text>
+        <Text style={styles.eventDate}>{item.date.toLocaleString("en-US",options)}</Text>
         <Text style={styles.eventLocation}>{item.location}</Text>
         <Text>hours : {item.duration}</Text>
       </View>
@@ -133,8 +143,7 @@ const renderReEvents = ({ item }) => {
       <View style={styles.eventDetails}>
         <Text style={styles.eventTitle}>{item.title}</Text>
         <Text style={styles.eventDescription}>{item.description}</Text>
-        <Text style={styles.eventDate}>Start Date : {item.fromDate}</Text>
-        <Text style={styles.eventDate}>Time : {item.time}</Text>
+        <Text style={styles.eventDate}>next Date : {item.date.toLocaleString("en-US",options)}</Text>
         <Text style={styles.eventDate}>every :{item.repeat} weeks</Text>
         <Text style={styles.eventLocation}> location : {item.location}</Text>
         <Text>hours : {item.duration}</Text>

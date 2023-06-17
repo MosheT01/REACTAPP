@@ -27,7 +27,7 @@ const MainScreen = ({ route, navigation }) => {
         >
           <Icon name="clock-o" size={100} />
 
-          <Text style={styles.buttonText}>hours</Text>
+          <Text style={styles.buttonText}>דוח שעות</Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={styles.button}
@@ -35,7 +35,7 @@ const MainScreen = ({ route, navigation }) => {
         >
           <Icon name="calendar" size={90} color="#000" />
 
-          <Text style={styles.buttonText}>Events</Text>
+          <Text style={styles.buttonText}>אירועים</Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={styles.button}
@@ -43,7 +43,7 @@ const MainScreen = ({ route, navigation }) => {
         >
           <Icon name="handshake-o" size={90} color="#000" />
 
-          <Text style={styles.buttonText}>My School</Text>
+          <Text style={styles.buttonText}>ניהול בית הספר</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -52,16 +52,16 @@ const MainScreen = ({ route, navigation }) => {
         >
           <Icon name="file" size={90} color="black" />
 
-          <Text style={styles.buttonText}>PDF</Text>
+          <Text style={styles.buttonText}>חומרי לימוד</Text>
         </TouchableOpacity>
-        <TouchableOpacity
+        {/* <TouchableOpacity
           style={styles.button}
           onPress={() => handleNavigate("inbox")}
         >
           <Icon name="envelope" size={90} color="black" />
 
           <Text style={styles.buttonText}>Messages</Text>
-        </TouchableOpacity>
+        </TouchableOpacity> */}
       </View>
 
       <View style={styles.footerContainer}>

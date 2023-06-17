@@ -278,7 +278,10 @@ function EventList({route, navigation}) {
   const handleMarkAttendance = async (event) => {
     students.at(0).data = [];
     console.log('eventID: ', event.eventID);
-    const getStudentsQ = query(collection(FIREBASE_DB, 'users'), where('volunteerPlaceID', '==', event.eventID));
+    let getStudentsQ = query(collection(FIREBASE_DB, 'users'), where('volunteerPlaceID', '==', event.eventID));
+    if(event.repeat==0){
+      getStudentsQ=query(collection(FIREBASE_DB, 'users'), where('manager', '==', uid));
+    }
     let querySnapshot = await getDocs(getStudentsQ);
 
     if (querySnapshot.empty){

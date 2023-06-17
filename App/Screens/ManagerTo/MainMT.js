@@ -34,7 +34,7 @@ const MainScreen = ({ route, navigation }) => {
         >
           <Icon name="handshake-o" size={90} color="#000" />
 
-          <Text style={styles.buttonText}>ניהול בתי ספר</Text>
+          <Text style={styles.buttonText}>ניהול מחוז</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -43,16 +43,16 @@ const MainScreen = ({ route, navigation }) => {
         >
           <Icon name="file" size={90} color="black" />
 
-          <Text style={styles.buttonText}>מסמכים</Text>
+          <Text style={styles.buttonText}>חומרי לימוד</Text>
         </TouchableOpacity>
-        <TouchableOpacity
+        {/* <TouchableOpacity
           style={styles.button}
           onPress={() => handleNavigate("inbox")}
         >
           <Icon name="envelope" size={90} color="black" />
 
           <Text style={styles.buttonText}>הודעות</Text>
-        </TouchableOpacity>
+        </TouchableOpacity> */}
       </View>
 
       <View style={styles.footerContainer}>
