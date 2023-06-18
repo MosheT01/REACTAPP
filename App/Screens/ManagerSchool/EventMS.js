@@ -503,7 +503,20 @@ function EventList({route, navigation}) {
             <View style={styles.modalButtons}>
               <Button
                 title="Cancel"
-                onPress={() => setEventDetails(false)}
+                onPress={() => {
+                  setEventDetails(false);
+                  setIsEditingEvent(false);
+                  setEventEdit({
+                    layerID: uid,
+                    title: '',
+                    description: '',
+                    location: '',
+                    duration: '0',
+                    repeat: '0',
+                    approved: false,
+                  });
+                  setDate(new Date(Date.now()));
+                }}
               />
               <Button title="Submit" onPress={() => handleFinishEditEvent()} />
             </View>

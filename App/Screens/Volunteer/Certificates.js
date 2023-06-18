@@ -199,11 +199,11 @@ export default function App({route,navigation}) {
     <View style={styles.container}>
       <TouchableOpacity style={styles.button} onPress={pdfCertificate}>
         <Icon name="users" size={100} color="black" />
-        <Text style={styles.buttonText}>Certificate</Text>
+        <Text style={styles.buttonText}>תעודת הוקרה</Text>
       </TouchableOpacity>
       <TouchableOpacity style={styles.button} onPress={pdfHoursCertificate}>
         <Icon name="clock-o" size={100} color="black" />
-        <Text style={styles.buttonText}>Hours Certificate</Text>
+        <Text style={styles.buttonText}>אישור שעות</Text>
       </TouchableOpacity>
     </View>
   );
